@@ -173,6 +173,23 @@ jobs:
         customPrepArgs="${customPrepArgs} --no-sdk --no-artifacts"
         prepSdk=false
       fi
+
+      if [[ '${{ parameters.runOnline }}' == 'False' ]]; then
+        smokeTestFeed="https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet8/nuget/v3/index.json"
+        smokeTestFeedKeyArg=''
+        # Enable this when we have a feed for internal builds (when .NET 8 enters servicing)
+        # if [[ "${SYSTEM_TEAMPROJECT}" == 'internal' ]]; then
+        #   feedKeyArg="--smoke-test-prereqs-feed-key $(dn-bot-dnceng-artifact-feeds-rw)"
+        #   smokeTestFeed="https://pkgs.dev.azure.com/dnceng/internal/_packaging/dotnet8-internal/nuget/v3/index.json"
+        # fi
+        smokeTestPrereqsPath="prereqs/packages/smoke-test-prereqs"
+        customPrepArgs="${customPrepArgs}
+          --smoke-test-prereqs-output ${smokeTestPrereqsPath}
+          --smoke-test-prereqs-feed ${smokeTestFeed}
+          ${smokeTestFeedKeyArg}"
+
+        echo "##vso[task.setvariable variable=smokeTestPrereqsPath]$smokeTestPrereqsPath"
+      fi
       
       if [[ "$prepSdk" == "false" ]]; then
         mkdir $(sourcesPath)/.dotnet
@@ -228,7 +245,15 @@ jobs:
         dockerEnvArgs+=" -e SMOKE_TESTS_WARN_POISON_DIFFS=true"
       fi
 
-      docker run --rm $dockerVolumeArgs -w /vmr $dockerEnvArgs ${{ parameters.container }} ./build.sh $poisonArg --run-smoke-test $(additionalBuildArgs) -- -p:SmokeTestConsoleVerbosity=detailed
+      customBuildArgs=''
+      if [[ '${{ parameters.runOnline }}' == 'True' ]]; then
+        customBuildArgs='--online'
+      else
+        customRunArgs="$customRunArgs --network none"
+        dockerEnvArgs+=" -e SMOKE_TESTS_PREREQS_PATH=$smokeTestPrereqsPath"
+      fi
+
+      docker run --rm $dockerVolumeArgs -w /vmr $dockerEnvArgs ${{ parameters.container }} ./build.sh $poisonArg --run-smoke-test $(additionalBuildArgs) $customBuildArgs -- -p:SmokeTestConsoleVerbosity=detailed
     displayName: Run Tests
 
   # Don't use CopyFiles@2 as it encounters permissions issues because it indexes all files in the source directory graph.

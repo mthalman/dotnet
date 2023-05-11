@@ -35,9 +35,7 @@
   </Target>
 
   <!-- After building, generate a prebuilt usage report. -->
-  <Target Name="ReportPrebuiltUsage"
-          AfterTargets="Build"
-          Condition="'$(SkipReportPrebuiltUsage)' != 'true'">
+  <Target Name="ReportPrebuiltUsage" AfterTargets="Build" Condition="'$(SkipReportPrebuiltUsage)' != 'true'">
     <MSBuild Projects="$(RepoProjectsDir)$(RootRepo).proj" Targets="WritePrebuiltUsageData;ReportPrebuiltUsage" />
   </Target>
 
@@ -51,11 +49,7 @@
     <MSBuild Projects="$(RepoProjectsDir)$(RootRepo).proj" Targets="ReportPrebuiltUsage" />
   </Target>
 
-  <Target Name="ReportPoisonUsage"
-          AfterTargets="Build"
-          Condition="'$(EnablePoison)' == 'true'"
-          Inputs="$(MSBuildProjectFullPath)"
-          Outputs="$(CompletedSemaphorePath)ReportPoisonUsage.complete" >
+  <Target Name="ReportPoisonUsage" AfterTargets="Build" Condition="'$(EnablePoison)' == 'true'" Inputs="$(MSBuildProjectFullPath)" Outputs="$(CompletedSemaphorePath)ReportPoisonUsage.complete">
     <ItemGroup>
       <FinalCliTarball Include="$(SourceBuiltTarBallPath)**/*$(TarBallExtension)" />
     </ItemGroup>
@@ -66,22 +60,14 @@
       <NonShippingPackagesList Include="$(PackageListsDir)**/$(NonShippingPackagesListPrefix)*" />
     </ItemGroup>
 
-    <CheckForPoison FilesToCheck="@(FinalCliTarball)"
-                    HashCatalogFilePath="$(PoisonReportDataFile)"
-                    MarkerFileName="$(PoisonMarkerFile)"
-                    PoisonReportOutputFilePath="$(PoisonUsageReportFile)"
-                    NonShippingPackagesListFiles="@(NonShippingPackagesList)" />
+    <CheckForPoison FilesToCheck="@(FinalCliTarball)" HashCatalogFilePath="$(PoisonReportDataFile)" MarkerFileName="$(PoisonMarkerFile)" PoisonReportOutputFilePath="$(PoisonUsageReportFile)" NonShippingPackagesListFiles="@(NonShippingPackagesList)" />
 
     <WriteLinesToFile File="$(CompletedSemaphorePath)ReportPoisonUsage.complete" Overwrite="true" />
     <Message Importance="High" Text="[$([System.DateTime]::Now.ToString('HH:mm:ss.ff'))] Done checking for poison." />
   </Target>
 
-  <Target Name="GeneratePrebuiltBurndownData"
-          Inputs="$(MSBuildProjectFullPath)"
-          Outputs="$(CompletedSemaphorePath)GeneratePrebuiltBurndownData.complete" >
-    <WriteUsageBurndownData RootDirectory="$(ProjectDir)"
-                            PrebuiltBaselineFile="$(BaselineDataFile)"
-                            OutputFilePath="$(PrebuiltBurndownDataFile)" />
+  <Target Name="GeneratePrebuiltBurndownData" Inputs="$(MSBuildProjectFullPath)" Outputs="$(CompletedSemaphorePath)GeneratePrebuiltBurndownData.complete">
+    <WriteUsageBurndownData RootDirectory="$(ProjectDir)" PrebuiltBaselineFile="$(BaselineDataFile)" OutputFilePath="$(PrebuiltBurndownDataFile)" />
 
     <WriteLinesToFile File="$(CompletedSemaphorePath)GeneratePrebuiltBurndownData.complete" Overwrite="true" />
   </Target>
@@ -97,23 +83,23 @@
       <SdkTarballPath>%(SdkTarballItem.Identity)</SdkTarballPath>
       <SourceBuiltArtifactsPath>%(SourceBuiltArtifactsItem.Identity)</SourceBuiltArtifactsPath>
       <SmokeTestConsoleVerbosity Condition="'$(SmokeTestConsoleVerbosity)' == ''">normal</SmokeTestConsoleVerbosity>
+      <AllTestEnvVars> SMOKE_TESTS_SDK_TARBALL_PATH=$(SdkTarballPath); SMOKE_TESTS_SOURCEBUILT_ARTIFACTS_PATH=$(SourceBuiltArtifactsPath); SMOKE_TESTS_TARGET_RID=$(TargetRid); SMOKE_TESTS_PORTABLE_RID=$(PortableRid); SMOKE_TESTS_CUSTOM_PACKAGES_PATH=$(CustomSourceBuiltPackagesPath); FSHARP_PACKAGE_VERSION=$(fsharpOutputPackageVersion);
+        $(CustomTestEnvVars)
+      </AllTestEnvVars>
+      <!-- Multiple loggers are specified so that results are captured in trx and pipelines can fail with AzDO pipeline warnings -->
+      <TestArgs>$(SmokeTestsDir) --logger:trx --logger:'console;verbosity=$(SmokeTestConsoleVerbosity)' -c $(Configuration)</TestArgs>
     </PropertyGroup>
 
-    <!-- Multiple loggers are specified so that results are captured in trx and pipelines can fail with AzDO pipeline warnings -->
-    <Exec Command="$(DotnetToolCommand) test $(SmokeTestsDir) --logger:trx --logger:'console;verbosity=$(SmokeTestConsoleVerbosity)' -c $(Configuration)"
-          EnvironmentVariables="
-            SMOKE_TESTS_SDK_TARBALL_PATH=$(SdkTarballPath);
-            SMOKE_TESTS_SOURCEBUILT_ARTIFACTS_PATH=$(SourceBuiltArtifactsPath);
-            SMOKE_TESTS_TARGET_RID=$(TargetRid);
-            SMOKE_TESTS_PORTABLE_RID=$(PortableRid);
-            SMOKE_TESTS_CUSTOM_PACKAGES_PATH=$(CustomSourceBuiltPackagesPath);
-            $(CustomTestEnvVars)" />
+    <Exec Command="$(DotnetToolCommand) test $(TestArgs) --filter Category=Default" EnvironmentVariables="$(AllTestEnvVars)" />
+
+    <!-- A second run of the tests is made for the prereqs tests. The prereqs tests require that all the other smoke tests
+         have been run first in order to collect the packages that are required by those tests. The prereqs tests then uses
+         those packages to run some validation. -->
+    <Exec Command="$(DotnetToolCommand) test $(TestArgs) --filter Category=Prereqs" EnvironmentVariables="$(AllTestEnvVars)" />
+
   </Target>
 
-  <Target Name="CreateSmokeTestPrereqsTarball"
-          AfterTargets="RunSmokeTest"
-          Condition="'$(SkipSmokeTestPrereqsTarballCreation)' != 'true'"
-          DependsOnTargets="
+  <Target Name="CreateSmokeTestPrereqsTarball" AfterTargets="RunSmokeTest" Condition="'$(SkipSmokeTestPrereqsTarballCreation)' != 'true'" DependsOnTargets="
             CheckIfCreateSmokeTestPrereqsExistToPack;
             CreateSmokeTestPrereqsTarballIfPrereqsExist"/>
 
@@ -130,19 +116,15 @@
     <Message Text="Found @(SmokeTestsPrereqs->Count()) prereqs in '$(SmokeTestsPackagesDir)'." Importance="High" />
   </Target>
 
-  <Target Name="CreateSmokeTestPrereqsTarballIfPrereqsExist"
-          DependsOnTargets="DetermineMicrosoftSourceBuildIntermediateInstallerVersion"
-          Condition="'@(SmokeTestsPrereqs->Count())' != '0'">
+  <Target Name="CreateSmokeTestPrereqsTarballIfPrereqsExist" DependsOnTargets="DetermineMicrosoftSourceBuildIntermediateInstallerVersion" Condition="'@(SmokeTestsPrereqs->Count())' != '0'">
     <PropertyGroup>
       <SmokeTestPrereqsTarballName>$(OutputPath)dotnet-smoke-test-prereqs.$(MicrosoftSourceBuildIntermediateInstallerVersion).$(TargetRid).tar.gz</SmokeTestPrereqsTarballName>
       <SmokeTestsPrereqPackagesDir>$(SmokeTestsArtifactsDir)prereq-packages/</SmokeTestsPrereqPackagesDir>
     </PropertyGroup>
 
-    <Copy SourceFiles="@(SmokeTestsPrereqs)"
-          DestinationFolder="$(SmokeTestsPrereqPackagesDir)" />
+    <Copy SourceFiles="@(SmokeTestsPrereqs)" DestinationFolder="$(SmokeTestsPrereqPackagesDir)" />
 
-    <Exec Command="tar --numeric-owner -czf $(SmokeTestPrereqsTarballName) ."
-          WorkingDirectory="$(SmokeTestsPrereqPackagesDir)"/>
+    <Exec Command="tar --numeric-owner -czf $(SmokeTestPrereqsTarballName) ." WorkingDirectory="$(SmokeTestsPrereqPackagesDir)"/>
 
     <Message Importance="High" Text="Packaged smoke-test prereqs in '$(SmokeTestPrereqsTarballName)'" />
   </Target>
@@ -165,16 +147,10 @@
 
     <Message Text="Uploading files to '$(AzureAccountName)' blob storage at $(ContainerName)/$(RelativeBlobPath)" />
 
-    <UploadToAzure AccountName="$(AzureAccountName)"
-                   AccountKey="$(AzureAccessToken)"
-                   ContainerName="$(ContainerName)"
-                   Items="@(ItemsToPublish)"
-                   Overwrite="true" />
+    <UploadToAzure AccountName="$(AzureAccountName)" AccountKey="$(AzureAccessToken)" ContainerName="$(ContainerName)" Items="@(ItemsToPublish)" Overwrite="true" />
   </Target>
 
-  <Target Name="CreatePrebuiltsTarball"
-          AfterTargets="Build"
-          DependsOnTargets="
+  <Target Name="CreatePrebuiltsTarball" AfterTargets="Build" DependsOnTargets="
             CheckIfPrebuiltsExistToPack;
             CreatePrebuiltsTarballIfPrebuiltsExist"/>
 
@@ -187,9 +163,7 @@
     <Message Text="Found @(PrebuiltFile->Count()) files in prebuilt packages dir." Importance="High" />
   </Target>
 
-  <Target Name="CreatePrebuiltsTarballIfPrebuiltsExist"
-          DependsOnTargets="DetermineMicrosoftSourceBuildIntermediateInstallerVersion"
-          Condition="'@(PrebuiltFile->Count())' != '0'">
+  <Target Name="CreatePrebuiltsTarballIfPrebuiltsExist" DependsOnTargets="DetermineMicrosoftSourceBuildIntermediateInstallerVersion" Condition="'@(PrebuiltFile->Count())' != '0'">
     <PropertyGroup>
       <TarballFilePath>$(OutputPath)$(SourceBuiltPrebuiltsTarballName).$(MicrosoftSourceBuildIntermediateInstallerVersion).$(TargetRid).tar.gz</TarballFilePath>
       <TarballWorkingDir>$(ResultingPrebuiltPackagesDir)</TarballWorkingDir>

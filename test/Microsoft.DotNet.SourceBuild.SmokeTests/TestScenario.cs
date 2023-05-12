@@ -49,12 +49,29 @@ public class TestScenario
         if (Commands.HasFlag(DotNetActions.PublishComplex))
         {
             dotNetHelper.ExecutePublish(projectName, selfContained: false);
-            dotNetHelper.ExecutePublish(projectName, selfContained: true, Config.TargetRid);
-            dotNetHelper.ExecutePublish(projectName, selfContained: true, $"linux-{Config.TargetArchitecture}");
+
+            if (!Config.IsOffline)
+            {
+                dotNetHelper.ExecutePublish(projectName, selfContained: true, Config.TargetRid);
+                dotNetHelper.ExecutePublish(projectName, selfContained: true, $"linux-{Config.TargetArchitecture}");
+            }
+            else
+            {
+                // See https://github.com/dotnet/source-build/issues/1215
+                dotNetHelper.OutputHelper.WriteLine("Skipping self-contained because offline");
+            }
         }
         if (Commands.HasFlag(DotNetActions.PublishR2R))
         {
-            dotNetHelper.ExecutePublish(projectName, selfContained: true, $"linux-{Config.TargetArchitecture}", trimmed: true, readyToRun: true);
+            if (!Config.IsOffline)
+            {
+                dotNetHelper.ExecutePublish(projectName, selfContained: true, $"linux-{Config.TargetArchitecture}", trimmed: true, readyToRun: true);
+            }
+            else
+            {
+                // See https://github.com/dotnet/source-build/issues/1215
+                dotNetHelper.OutputHelper.WriteLine("Skipping ReadyToRun because offline");
+            }
         }
         if (Commands.HasFlag(DotNetActions.Test))
         {

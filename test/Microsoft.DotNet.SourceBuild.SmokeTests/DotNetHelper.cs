@@ -19,7 +19,7 @@ internal class DotNetHelper
     public static string PackagesDirectory { get; } = Path.Combine(Directory.GetCurrentDirectory(), "packages");
     public static string ProjectsDirectory { get; } = Path.Combine(Directory.GetCurrentDirectory(), $"projects-{DateTime.Now:yyyyMMddHHmmssffff}");
 
-    private ITestOutputHelper OutputHelper { get; }
+    public ITestOutputHelper OutputHelper { get; }
     private bool IsMonoRuntime { get; }
 
     public DotNetHelper(ITestOutputHelper outputHelper)

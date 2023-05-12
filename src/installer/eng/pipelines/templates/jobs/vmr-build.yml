@@ -184,7 +184,7 @@ jobs:
         # fi
         smokeTestPrereqsPath="prereqs/packages/smoke-test-prereqs"
         customPrepArgs="${customPrepArgs}
-          --smoke-test-prereqs-output ${smokeTestPrereqsPath}
+          --smoke-test-prereqs-path ${smokeTestPrereqsPath}
           --smoke-test-prereqs-feed ${smokeTestFeed}
           ${smokeTestFeedKeyArg}"
 
@@ -246,14 +246,15 @@ jobs:
       fi
 
       customBuildArgs=''
+      customRunArgs=''
       if [[ '${{ parameters.runOnline }}' == 'True' ]]; then
         customBuildArgs='--online'
       else
-        customRunArgs="$customRunArgs --network none"
-        dockerEnvArgs+=" -e SMOKE_TESTS_PREREQS_PATH=$smokeTestPrereqsPath"
+        customRunArgs+=" --network none"
+        dockerEnvArgs+=" -e SMOKE_TESTS_PREREQS_PATH=$(smokeTestPrereqsPath) -e SMOKE_TESTS_OFFLINE=true"
       fi
 
-      docker run --rm $dockerVolumeArgs -w /vmr $dockerEnvArgs ${{ parameters.container }} ./build.sh $poisonArg --run-smoke-test $(additionalBuildArgs) $customBuildArgs -- -p:SmokeTestConsoleVerbosity=detailed
+      docker run --rm $dockerVolumeArgs -w /vmr $customRunArgs $dockerEnvArgs ${{ parameters.container }} ./build.sh $poisonArg --run-smoke-test $(additionalBuildArgs) $customBuildArgs -- -p:SmokeTestConsoleVerbosity=detailed
     displayName: Run Tests
 
   # Don't use CopyFiles@2 as it encounters permissions issues because it indexes all files in the source directory graph.

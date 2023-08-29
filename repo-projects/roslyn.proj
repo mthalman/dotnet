@@ -18,10 +18,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <RepositoryReference Include="arcade" />
-    <RepositoryReference Include="command-line-api" />
     <RepositoryReference Include="source-build-externals" />
-    <RepositoryReference Include="runtime" />
+    <RepositoryReference Include="source-build-reference-packages" />
+    <RepositoryReference Include="arcade" />
   </ItemGroup>
 
   <ItemGroup>

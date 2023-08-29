@@ -25,6 +25,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <RepositoryReference Include="source-build-reference-packages" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ExtraPackageVersionPropsPackageInfo Include="NuGetVersion" Version="%24(NuGetPackagingVersion)" />
   </ItemGroup>
 

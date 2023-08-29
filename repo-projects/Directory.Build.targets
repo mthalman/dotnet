@@ -22,7 +22,7 @@
       <_DependentProject Include="@(RepositoryReference -> '%(Identity).proj')" />
     </ItemGroup>
 
-    <MSBuild Projects="@(_DependentProject)" Targets="Build" BuildInParallel="$(BuildInParallel)" StopOnFirstFailure="true" />
+    <MSBuild Projects="@(_DependentProject)" Targets="Build" BuildInParallel="true" StopOnFirstFailure="true" />
   </Target>
 
   <!-- TODO: Remove this target: https://github.com/dotnet/source-build/issues/3743 -->

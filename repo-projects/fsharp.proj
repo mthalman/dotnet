@@ -16,9 +16,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <RepositoryReference Include="source-build-reference-packages" />
+    <RepositoryReference Include="msbuild" />
     <RepositoryReference Include="arcade" />
-    <RepositoryReference Include="msbuild" /> 
-    <RepositoryReference Include="source-build-externals" />
+    <RepositoryReference Include="sourcelink" />
   </ItemGroup>
 
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />

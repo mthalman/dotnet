@@ -42,12 +42,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <RepositoryReference Include="arcade" />
     <RepositoryReference Include="source-build-externals" />
+    <RepositoryReference Include="symreader" />
     <RepositoryReference Include="runtime" />
-    <RepositoryReference Include="msbuild" />
+    <RepositoryReference Include="xdt" />
+    <RepositoryReference Include="source-build-reference-packages" />
     <RepositoryReference Include="roslyn" />
-    <RepositoryReference Include="roslyn-analyzers" />
+    <RepositoryReference Include="arcade" />
   </ItemGroup>
 
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />

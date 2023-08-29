@@ -42,6 +42,11 @@
     <UseSourceBuiltSdkOverride Include="@(ArcadeSharedFrameworkSdkOverride)" />
   </ItemGroup>
 
+  <!-- Environment Variables -->
+  <ItemGroup>
+    <EnvironmentVariables Include="BuildInParallel=true" />
+  </ItemGroup>
+
   <ItemGroup>
     <ExtraPackageVersionPropsPackageInfo Include="MicrosoftCodeAnalysisVersion_4_X" Version="%24(MicrosoftCodeAnalysisVersion)" />
     <ExtraPackageVersionPropsPackageInfo Include="MicrosoftCodeAnalysisVersion_4_4" Version="%24(MicrosoftCodeAnalysisVersion)" />
@@ -50,10 +55,12 @@
 
   <!-- Repository References -->
   <ItemGroup>
-      <RepositoryReference Include="arcade" />
+      <RepositoryReference Include="command-line-api" />
       <RepositoryReference Include="cecil" />
-      <RepositoryReference Include="symreader" />
+      <RepositoryReference Include="source-build-reference-packages" />
       <RepositoryReference Include="source-build-externals" />
+      <RepositoryReference Include="arcade" />
+      <RepositoryReference Include="xliff-tasks" />
   </ItemGroup>
 
   <Target Name="SetOutputList" AfterTargets="Package" BeforeTargets="GatherBuiltPackages">

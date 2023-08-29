@@ -5,5 +5,10 @@
     <BuildCommand>$(StandardSourceBuildCommand) $(StandardSourceBuildArgs)</BuildCommand>
   </PropertyGroup>
 
+  <ItemGroup>
+    <RepositoryReference Include="arcade" />
+    <RepositoryReference Include="source-build-reference-packages" />
+  </ItemGroup>
+
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
 </Project>

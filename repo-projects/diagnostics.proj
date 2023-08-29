@@ -6,5 +6,11 @@
     <BuildCommand>$(ProjectDirectory)eng\common\build$(ShellExtension) $(BuildCommandArgs)</BuildCommand>
   </PropertyGroup>
 
+  <ItemGroup>
+    <RepositoryReference Include="arcade" />
+    <RepositoryReference Include="source-build-reference-packages" />
+    <RepositoryReference Include="sourcelink" />
+  </ItemGroup>
+
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
 </Project>

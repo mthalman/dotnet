@@ -7,8 +7,13 @@
 
   <ItemGroup>
     <RepositoryReference Include="roslyn" />
-    <RepositoryReference Include="roslyn-analyzers" />
     <RepositoryReference Include="source-build-externals" />
+    <RepositoryReference Include="source-build-reference-packages" />
+    <RepositoryReference Include="symreader" />
+    <RepositoryReference Include="command-line-api" />
+    <RepositoryReference Include="arcade" />
+    <RepositoryReference Include="sourcelink" />
+    <RepositoryReference Include="xliff-tasks" />
   </ItemGroup>
 
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />

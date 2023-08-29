@@ -31,16 +31,24 @@
 
   <ItemGroup>
     <RepositoryReference Include="arcade" />
+    <RepositoryReference Include="templating" />
     <RepositoryReference Include="runtime" />
+    <RepositoryReference Include="emsdk" />
     <RepositoryReference Include="msbuild" />
-    <RepositoryReference Include="source-build-externals" />
-    <RepositoryReference Include="nuget-client" />
-    <RepositoryReference Include="roslyn-analyzers" />
-    <RepositoryReference Include="vstest" />
     <RepositoryReference Include="fsharp" />
     <RepositoryReference Include="format" />
-    <RepositoryReference Include="deployment-tools" />
+    <RepositoryReference Include="roslyn" />
+    <RepositoryReference Include="vstest" />
+    <RepositoryReference Include="aspnetcore" />
     <RepositoryReference Include="razor" />
+    <RepositoryReference Include="xdt" />
+    <RepositoryReference Include="roslyn-analyzers" />
+    <RepositoryReference Include="command-line-api" />
+    <RepositoryReference Include="source-build-externals" />
+    <RepositoryReference Include="source-build-reference-packages" />
+    <RepositoryReference Include="sourcelink" />
+    <RepositoryReference Include="deployment-tools" />
+    <RepositoryReference Include="symreader" />
   </ItemGroup>
 
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />

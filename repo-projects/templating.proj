@@ -12,6 +12,9 @@
   <ItemGroup>
     <RepositoryReference Include="nuget-client" />
     <RepositoryReference Include="source-build-externals" />
+    <RepositoryReference Include="source-build-reference-packages" />
+    <RepositoryReference Include="arcade" />
+    <RepositoryReference Include="xliff-tasks" />
   </ItemGroup>
 
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />

@@ -16,6 +16,15 @@
       <Uri>https://github.com/dotnet/runtime</Uri>
       <Sha>d099f075e45d2aa6007a22b71b45a08758559f80</Sha>
     </Dependency>
+    <Dependency Name="System.CommandLine" Version="2.0.0-beta4.23307.1">
+      <Uri>https://github.com/dotnet/command-line-api</Uri>
+      <Sha>02fe27cd6a9b001c8feb7938e6ef4b3799745759</Sha>
+    </Dependency>
+    <Dependency Name="Microsoft.SourceBuild.Intermediate.command-line-api" Version="0.1.430701">
+      <Uri>https://github.com/dotnet/command-line-api</Uri>
+      <Sha>02fe27cd6a9b001c8feb7938e6ef4b3799745759</Sha>
+      <SourceBuild RepoName="command-line-api" ManagedOnly="true" />
+    </Dependency>
   </ProductDependencies>
   <ToolsetDependencies>
     <Dependency Name="Microsoft.DotNet.Arcade.Sdk" Version="8.0.0-beta.23451.1">
@@ -31,6 +40,11 @@
     <Dependency Name="Microsoft.DiaSymReader" Version="2.0.0">
       <Uri>https://github.com/dotnet/symreader</Uri>
       <Sha>27e584661980ee6d82c419a2a471ae505b7d122e</Sha>
+    </Dependency>
+    <Dependency Name="Microsoft.SourceBuild.Intermediate.symreader" Version="2.0.0-beta-23228-04">
+      <Uri>https://github.com/dotnet/symreader</Uri>
+      <Sha>27e584661980ee6d82c419a2a471ae505b7d122e</Sha>
+      <SourceBuild RepoName="symreader" ManagedOnly="true" />
     </Dependency>
     <Dependency Name="Microsoft.Net.Compilers.Toolset" Version="4.1.0-5.22128.4">
       <Uri>https://github.com/dotnet/roslyn</Uri>

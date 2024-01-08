@@ -51,18 +51,25 @@
       <ReferencePackagesNuGetSourceName>reference-packages</ReferencePackagesNuGetSourceName>
       <SourceBuiltNuGetSourceName>source-built</SourceBuiltNuGetSourceName>
       <ExtraSourcesNuGetSourceName>ExtraSources</ExtraSourcesNuGetSourceName>
-      <SourceBuildSources>$(PrebuiltNuGetSourceName);$(PreviouslySourceBuiltNuGetSourceName);$(ReferencePackagesNuGetSourceName);$(SourceBuiltNuGetSourceName)</SourceBuildSources>
-      <SourceBuildSources Condition="'$(ExtraRestoreSourcePath)' != ''">$(SourceBuildSources);$(ExtraSourcesNuGetSourceName)</SourceBuildSources>
     </PropertyGroup>
+
+    <ItemGroup>
+      <RepositoryReferenceInfo Include="@(RepositoryReference)">
+        <SourceName>$(SourceBuiltNuGetSourceName)-%(Identity)</SourceName>
+        <PackagesPath>$(SourceBuiltBasePackagesPath)%(Identity)</PackagesPath>
+      </RepositoryReferenceInfo>
+      <RepoSourceNames Include="@(RepositoryReferenceInfo->'%(SourceName)')">
+    </ItemGroup>
+
+    <ItemGroup>
+      <SourceBuildSources Include="$(PrebuiltNuGetSourceName);$(PreviouslySourceBuiltNuGetSourceName);$(ReferencePackagesNuGetSourceName);@(RepoSourceNames)" />
+      <SourceBuildSources Include="$(ExtraSourcesNuGetSourceName)" Condition="'$(ExtraRestoreSourcePath)' != ''" />
+    </ItemGroup>
 
     <RemoveInternetSourcesFromNuGetConfig
       NuGetConfigFile="$(NuGetConfigFile)"
       BuildWithOnlineSources="$(BuildWithOnlineSources)"
       KeepFeedPrefixes="@(KeepFeedPrefixes)" />
-    
-    <ItemGroup>
-      <SourceBuiltRepoPackagesPath Include="@(RepositoryReference->'$(SourceBuiltBasePackagesPath)%(Identity)')" />
-    </ItemGroup>
 
     <AddSourceToNuGetConfig NuGetConfigFile="$(NuGetConfigFile)"
                             SourceName="$(PrebuiltNuGetSourceName)"
@@ -80,9 +87,9 @@
                             />
 
     <AddSourceToNuGetConfig NuGetConfigFile="$(NuGetConfigFile)"
-                            SourceName="$(SourceBuiltNuGetSourceName)"
-                            SourcePath="%(SourceBuiltRepoPackagesPath.Identity)"
-                            Condition=" '@(SourceBuiltRepoPackagesPath)' != '' " />
+                            SourceName="%(RepositoryReferenceInfo.SourceName)"
+                            SourcePath="%(RepositoryReferenceInfo.PackagesPath)"
+                            Condition=" '@(RepositoryReferenceInfo)' != '' " />
 
     <AddSourceToNuGetConfig NuGetConfigFile="$(NuGetConfigFile)"
                             SourceName="$(ExtraSourcesNuGetSourceName)"
@@ -92,7 +99,7 @@
     <UpdateNuGetConfigPackageSourcesMappings
       NuGetConfigFile="$(NuGetConfigFile)"
       BuildWithOnlineSources="$(BuildWithOnlineSources)"
-      SourceBuildSources="$(SourceBuildSources)" />
+      SourceBuildSources="@(SourceBuildSources)" />
 
     <WriteLinesToFile File="$(RepoCompletedSemaphorePath)UpdateNuGetConfig.complete" Overwrite="true" />
   </Target>

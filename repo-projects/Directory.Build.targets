@@ -109,6 +109,10 @@
       BuildWithOnlineFeeds="$(DotNetBuildWithOnlineFeeds)"
       KeepFeedPrefixes="@(KeepFeedPrefixes)"
       Condition="'$(DotNetBuildSourceOnly)' == 'true'" />
+    
+    <ItemGroup>
+      <SourceBuiltRepoPackagesPath Include="@(RepositoryReference->'$(SourceBuiltBasePackagesPath)%(Identity)')" />
+    </ItemGroup>
 
     <AddSourceToNuGetConfig NuGetConfigFile="$(NuGetConfigFile)"
                             SourceName="$(PrebuiltNuGetSourceName)"
@@ -127,7 +131,7 @@
 
     <AddSourceToNuGetConfig NuGetConfigFile="$(NuGetConfigFile)"
                             SourceName="$(SourceBuiltNuGetSourceName)"
-                            SourcePath="$(SourceBuiltPackagesPath)" />
+                            SourcePath="%(SourceBuiltRepoPackagesPath.Identity)" />
 
     <AddSourceToNuGetConfig NuGetConfigFile="$(NuGetConfigFile)"
                             SourceName="$(ExtraSourcesNuGetSourceName)"

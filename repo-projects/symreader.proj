@@ -9,7 +9,6 @@
     <RepositoryReference Include="arcade" />
     <RepositoryReference Include="source-build-reference-packages" />
     <RepositoryReference Include="sourcelink" />
-    <RepositoryReference Include="xliff-tasks" />
   </ItemGroup>
 
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />

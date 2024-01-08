@@ -18,7 +18,6 @@
   <ItemGroup>
     <RepositoryReference Include="source-build-reference-packages" />
     <RepositoryReference Include="arcade" />
-    <RepositoryReference Include="xliff-tasks" />
     <RepositoryReference Include="roslyn" />
   </ItemGroup>
 

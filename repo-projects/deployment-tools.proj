@@ -7,7 +7,6 @@
 
   <ItemGroup>
     <RepositoryReference Include="arcade" />
-    <RepositoryReference Include="xliff-tasks" />
     <RepositoryReference Include="source-build-reference-packages" />
     <RepositoryReference Include="source-build-externals" />
   </ItemGroup>

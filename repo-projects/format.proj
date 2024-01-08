@@ -13,7 +13,6 @@
     <RepositoryReference Include="command-line-api" />
     <RepositoryReference Include="arcade" />
     <RepositoryReference Include="sourcelink" />
-    <RepositoryReference Include="xliff-tasks" />
   </ItemGroup>
 
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />

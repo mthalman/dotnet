@@ -14,7 +14,6 @@
     <RepositoryReference Include="source-build-reference-packages" />
     <RepositoryReference Include="arcade" />
     <RepositoryReference Include="roslyn" />
-    <RepositoryReference Include="xliff-tasks" />
     <RepositoryReference Include="sourcelink" />
   </ItemGroup>
 

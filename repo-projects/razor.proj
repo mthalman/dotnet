@@ -9,7 +9,6 @@
     <RepositoryReference Include="source-build-reference-packages" />
     <RepositoryReference Include="roslyn" />
     <RepositoryReference Include="arcade" />
-    <RepositoryReference Include="xliff-tasks" />
   </ItemGroup>
 
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />

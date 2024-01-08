@@ -107,7 +107,7 @@
     <IntermediatePath>$(BaseIntermediatePath)$(TargetPlatform)/$(Configuration)/</IntermediatePath>
     <LocalNuGetPackagesRoot>$(IntermediatePath)nuget-packages/</LocalNuGetPackagesRoot>
     <SourceBuiltBlobFeedDir>$(IntermediatePath)blob-feed/</SourceBuiltBlobFeedDir>
-    <SourceBuiltPackagesPath>$(SourceBuiltBlobFeedDir)packages/</SourceBuiltPackagesPath>
+    <SourceBuiltBasePackagesPath>$(SourceBuiltBlobFeedDir)packages/</SourceBuiltBasePackagesPath>
     <SourceBuiltAssetsDir>$(SourceBuiltBlobFeedDir)assets/</SourceBuiltAssetsDir>
     <PrebuiltPackagesPath>$(PrereqsPackagesDir)prebuilt/</PrebuiltPackagesPath>
     <PreviouslyRestoredPackagesPath>$(PrereqsPackagesDir)previouslyRestored/</PreviouslyRestoredPackagesPath>

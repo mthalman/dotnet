@@ -64,6 +64,10 @@
       NuGetConfigFile="%(NuGetConfigFiles.Identity)"
       BuildWithOnlineSources="$(BuildWithOnlineSources)"
       KeepFeedPrefixes="@(KeepFeedPrefixes)" />
+    
+    <ItemGroup>
+      <SourceBuiltRepoPackagesPath Include="@(RepositoryReference->'$(SourceBuiltBasePackagesPath)%(Identity)')" />
+    </ItemGroup>
 
     <AddSourceToNuGetConfig NuGetConfigFile="%(NuGetConfigFiles.Identity)"
                             SourceName="$(PrebuiltNuGetSourceName)"
@@ -82,7 +86,7 @@
 
     <AddSourceToNuGetConfig NuGetConfigFile="%(NuGetConfigFiles.Identity)"
                             SourceName="$(SourceBuiltNuGetSourceName)"
-                            SourcePath="$(SourceBuiltPackagesPath)" />
+                            SourcePath="%(SourceBuiltRepoPackagesPath.Identity)" />
 
     <AddSourceToNuGetConfig NuGetConfigFile="%(NuGetConfigFiles.Identity)"
                             SourceName="$(ExtraSourcesNuGetSourceName)"

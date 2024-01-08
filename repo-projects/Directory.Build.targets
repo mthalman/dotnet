@@ -131,7 +131,8 @@
 
     <AddSourceToNuGetConfig NuGetConfigFile="$(NuGetConfigFile)"
                             SourceName="$(SourceBuiltNuGetSourceName)"
-                            SourcePath="%(SourceBuiltRepoPackagesPath.Identity)" />
+                            SourcePath="%(SourceBuiltRepoPackagesPath.Identity)"
+                            Condition=" '@(SourceBuiltRepoPackagesPath)' != '' " />
 
     <AddSourceToNuGetConfig NuGetConfigFile="$(NuGetConfigFile)"
                             SourceName="$(ExtraSourcesNuGetSourceName)"

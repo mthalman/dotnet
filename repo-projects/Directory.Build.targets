@@ -48,7 +48,8 @@
         <SourceName>$(SourceBuiltNuGetSourceName)-%(Identity)</SourceName>
         <PackagesPath>$(SourceBuiltBasePackagesPath)%(Identity)/</PackagesPath>
       </RepositoryReferenceInfo>
-      <RepoSourceNames Include="@(RepositoryReferenceInfo->'%(SourceName)')" />
+      <DependentRepoSourceName Include="@(RepositoryReferenceInfo->'%(SourceName)')" />
+      <DependentRepoPackagesPath Include="@(RepositoryReferenceInfo->'%(PackagesPath)')" />
     </ItemGroup>
   </Target>
 
@@ -67,7 +68,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <SourceBuildSources Include="$(PrebuiltNuGetSourceName);$(PreviouslySourceBuiltNuGetSourceName);$(ReferencePackagesNuGetSourceName);@(RepoSourceNames)" />
+      <SourceBuildSources Include="$(PrebuiltNuGetSourceName);$(PreviouslySourceBuiltNuGetSourceName);$(ReferencePackagesNuGetSourceName);@(DependentRepoSourceName)" />
       <SourceBuildSources Include="$(ExtraSourcesNuGetSourceName)" Condition="'$(ExtraRestoreSourcePath)' != ''" />
     </ItemGroup>
 
@@ -136,8 +137,9 @@
           Outputs="$(RepoCompletedSemaphorePath)CreateBuildInputProps.complete">
 
     <ItemGroup>
-      <_CurrentSourceBuiltPackages Include="@(RepositoryReferenceInfo->'%(PackagesPath)')"
-                                   Condition="'%(Extension)' == '.nupkg' And '%(Filename).symbols' != '%(Filename)'" />
+      <!-- Collect all the NuGet packages from dependent repos except for the symbols -->
+      <_CurrentSourceBuiltPackages Include="@(DependentRepoPackagesPath)"
+                                   Condition="'%(Extension)' == '.nupkg' and !$([System.String]::new('%(Filename)').EndsWith('.symbols')) " />
 
       <!-- TODO: Remove Remove System.Drawing.Common exclusion once previous source-build artifacts have been updated to no longer include it.
            System.Drawing.Common is excluded in response to https://github.com/dotnet/runtime/pull/83356 in order to avoid rebuilts and 

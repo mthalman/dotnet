@@ -136,8 +136,8 @@
           Outputs="$(RepoCompletedSemaphorePath)CreateBuildInputProps.complete">
 
     <ItemGroup>
-      <_CurrentSourceBuiltPackages Include="%(RepositoryReferenceInfo.PackagesPath)*.nupkg"
-                                   Exclude="%(RepositoryReferenceInfo.PackagesPath)*.symbols.nupkg" />
+      <_CurrentSourceBuiltPackages Include="@(RepositoryReferenceInfo->'%(PackagesPath)*.nupkg')"
+                                   Exclude="@(RepositoryReferenceInfo->'%(PackagesPath)*.symbols.nupkg')"/>
 
       <!-- TODO: Remove Remove System.Drawing.Common exclusion once previous source-build artifacts have been updated to no longer include it.
            System.Drawing.Common is excluded in response to https://github.com/dotnet/runtime/pull/83356 in order to avoid rebuilts and 

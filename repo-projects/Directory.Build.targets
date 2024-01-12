@@ -54,6 +54,19 @@
   <UsingTask AssemblyFile="$(XPlatSourceBuildTasksAssembly)" TaskName="WritePackageVersionsProps" />
   <UsingTask AssemblyFile="$(XPlatSourceBuildTasksAssembly)" TaskName="WritePackageUsageData" />
   <UsingTask AssemblyFile="$(XPlatSourceBuildTasksAssembly)" TaskName="WriteUsageReports" />
+  
+  <Target Name="GetRepositoryReferenceInfo">
+    <PropertyGroup>
+      <SourceBuiltNuGetSourceName>source-built</SourceBuiltNuGetSourceName>
+    </PropertyGroup>
+    <ItemGroup>
+      <RepositoryReferenceInfo Include="@(RepositoryReference)">
+        <SourceName>$(SourceBuiltNuGetSourceName)-%(Identity)</SourceName>
+        <PackagesPath>$(SourceBuiltBasePackagesPath)%(Identity)</PackagesPath>
+      </RepositoryReferenceInfo>
+      <RepoSourceNames Include="@(RepositoryReferenceInfo->'%(SourceName)')" />
+    </ItemGroup>
+  </Target>
 
   <Target Name="CopyNuGetConfig"
           Condition="'$(NuGetConfigFile)' != ''"
@@ -70,7 +83,7 @@
   </Target>
 
   <Target Name="UpdateNuGetConfig"
-          DependsOnTargets="CopyNuGetConfig"
+          DependsOnTargets="CopyNuGetConfig;GetRepositoryReferenceInfo"
           Condition="'$(NuGetConfigFile)' != ''"
           Inputs="$(MSBuildProjectFullPath)"
           Outputs="$(BaseIntermediateOutputPath)UpdateNuGetConfig.complete">
@@ -85,7 +98,6 @@
       <PrebuiltNuGetSourceName>prebuilt</PrebuiltNuGetSourceName>
       <PreviouslySourceBuiltNuGetSourceName>previously-source-built</PreviouslySourceBuiltNuGetSourceName>
       <ReferencePackagesNuGetSourceName>reference-packages</ReferencePackagesNuGetSourceName>
-      <SourceBuiltNuGetSourceName>source-built</SourceBuiltNuGetSourceName>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(DotNetBuildSourceOnly)' != 'true'">
@@ -105,15 +117,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <RepositoryReferenceInfo Include="@(RepositoryReference)">
-        <SourceName>$(SourceBuiltNuGetSourceName)-%(Identity)</SourceName>
-        <PackagesPath>$(SourceBuiltBasePackagesPath)%(Identity)</PackagesPath>
-      </RepositoryReferenceInfo>
-      <RepoSourceNames Include="@(RepositoryReferenceInfo->'%(SourceName)')" />
-    </ItemGroup>
-
-    <ItemGroup>
       <SourceBuildSources Include="$(PrebuiltNuGetSourceName);$(PreviouslySourceBuiltNuGetSourceName);$(ReferencePackagesNuGetSourceName);@(RepoSourceNames)" />
+      <SourceBuildSources Include="$(ExtraSourcesNuGetSourceName)" Condition="'$(ExtraRestoreSourcePath)' != ''" />
     </ItemGroup>
 
     <RemoveInternetSourcesFromNuGetConfig
@@ -206,11 +211,12 @@
   <!-- Before a repository builds, set up the version property files that override the repo's defaults.
        There are 3 files generated -->
   <Target Name="CreateBuildInputProps"
+          DependsOnTargets="GetRepositoryReferenceInfo"
           Inputs="$(MSBuildProjectFullPath)"
           Outputs="$(BaseIntermediateOutputPath)CreateBuildInputProps.complete">
     <ItemGroup>
-      <_CurrentSourceBuiltPackages Include="$(SourceBuiltPackagesPath)*.nupkg"
-                                   Exclude="$(SourceBuiltPackagesPath)*.symbols.nupkg" />
+      <_CurrentSourceBuiltPackages Include="%(RepositoryReferenceInfo.PackagesPath)*.nupkg"
+                                   Exclude="%(RepositoryReferenceInfo.PackagesPath)*.symbols.nupkg" />
       <_PreviouslyBuiltSourceBuiltPackages Include="$(PrebuiltSourceBuiltPackagesPath)*.nupkg" />
     </ItemGroup>
 

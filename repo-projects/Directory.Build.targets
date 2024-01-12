@@ -39,8 +39,22 @@
     <WriteLinesToFile File="$(RepoCompletedSemaphorePath)UpdateBuildToolFramework.complete" Overwrite="true" />
   </Target>
 
+  <Target Name="GetRepositoryReferenceInfo">
+    <PropertyGroup>
+      <SourceBuiltNuGetSourceName>source-built</SourceBuiltNuGetSourceName>
+    </PropertyGroup>
+    <ItemGroup>
+      <RepositoryReferenceInfo Include="@(RepositoryReference)">
+        <SourceName>$(SourceBuiltNuGetSourceName)-%(Identity)</SourceName>
+        <PackagesPath>$(SourceBuiltBasePackagesPath)%(Identity)</PackagesPath>
+      </RepositoryReferenceInfo>
+      <RepoSourceNames Include="@(RepositoryReferenceInfo->'%(SourceName)')" />
+    </ItemGroup>
+  </Target>
+
   <Target Name="UpdateNuGetConfig"
           BeforeTargets="Build"
+          DependsOnTargets="GetRepositoryReferenceInfo"
           Condition="'$(NuGetConfigFile)' != ''"
           Inputs="$(MSBuildProjectFullPath)"
           Outputs="$(RepoCompletedSemaphorePath)UpdateNuGetConfig.complete">
@@ -49,17 +63,8 @@
       <PrebuiltNuGetSourceName>prebuilt</PrebuiltNuGetSourceName>
       <PreviouslySourceBuiltNuGetSourceName>previously-source-built</PreviouslySourceBuiltNuGetSourceName>
       <ReferencePackagesNuGetSourceName>reference-packages</ReferencePackagesNuGetSourceName>
-      <SourceBuiltNuGetSourceName>source-built</SourceBuiltNuGetSourceName>
       <ExtraSourcesNuGetSourceName>ExtraSources</ExtraSourcesNuGetSourceName>
     </PropertyGroup>
-
-    <ItemGroup>
-      <RepositoryReferenceInfo Include="@(RepositoryReference)">
-        <SourceName>$(SourceBuiltNuGetSourceName)-%(Identity)</SourceName>
-        <PackagesPath>$(SourceBuiltBasePackagesPath)%(Identity)</PackagesPath>
-      </RepositoryReferenceInfo>
-      <RepoSourceNames Include="@(RepositoryReferenceInfo->'%(SourceName)')" />
-    </ItemGroup>
 
     <ItemGroup>
       <SourceBuildSources Include="$(PrebuiltNuGetSourceName);$(PreviouslySourceBuiltNuGetSourceName);$(ReferencePackagesNuGetSourceName);@(RepoSourceNames)" />
@@ -126,12 +131,13 @@
        There are 3 files generated -->
   <Target Name="CreateBuildInputProps"
           BeforeTargets="Build"
+          DependsOnTargets="GetRepositoryReferenceInfo"
           Inputs="$(MSBuildProjectFullPath)"
           Outputs="$(RepoCompletedSemaphorePath)CreateBuildInputProps.complete">
 
     <ItemGroup>
-      <_CurrentSourceBuiltPackages Include="$(SourceBuiltPackagesPath)*.nupkg"
-                                   Exclude="$(SourceBuiltPackagesPath)*.symbols.nupkg" />
+      <_CurrentSourceBuiltPackages Include="%(RepositoryReferenceInfo.PackagesPath)*.nupkg"
+                                   Exclude="%(RepositoryReferenceInfo.PackagesPath)*.symbols.nupkg" />
 
       <!-- TODO: Remove Remove System.Drawing.Common exclusion once previous source-build artifacts have been updated to no longer include it.
            System.Drawing.Common is excluded in response to https://github.com/dotnet/runtime/pull/83356 in order to avoid rebuilts and 

@@ -49,7 +49,7 @@
         <PackagesPath>$(SourceBuiltBasePackagesPath)%(Identity)/</PackagesPath>
       </RepositoryReferenceInfo>
       <DependentRepoSourceName Include="@(RepositoryReferenceInfo->'%(SourceName)')" />
-      <DependentRepoPackagesPath Include="@(RepositoryReferenceInfo->'%(PackagesPath)')" />
+      <DependentRepoPackageFile Include="%(RepositoryReferenceInfo.PackagesPath)**" />
     </ItemGroup>
   </Target>
 
@@ -138,7 +138,7 @@
 
     <ItemGroup>
       <!-- Collect all the NuGet packages from dependent repos except for the symbols -->
-      <_CurrentSourceBuiltPackages Include="@(DependentRepoPackagesPath)"
+      <_CurrentSourceBuiltPackages Include="@(DependentRepoPackageFile)"
                                    Condition="'%(Extension)' == '.nupkg' and !$([System.String]::new('%(Filename)').EndsWith('.symbols')) " />
 
       <!-- TODO: Remove Remove System.Drawing.Common exclusion once previous source-build artifacts have been updated to no longer include it.

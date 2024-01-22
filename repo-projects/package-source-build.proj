@@ -31,7 +31,7 @@
       <SBRPIntermediateWildcard>Microsoft.SourceBuild.Intermediate.source-build-reference-packages*.nupkg</SBRPIntermediateWildcard>
     </PropertyGroup>
     <ItemGroup>
-      <SourceBuildReferencePackagesIntermediatePackage Include="$(SourceBuiltPackagesPath)$(SBRPIntermediateWildcard)"/>
+      <SourceBuildReferencePackagesIntermediatePackage Include="$(SourceBuiltBasePackagesPath)source-build-reference-packages/$(SBRPIntermediateWildcard)"/>
     </ItemGroup>
 
     <MakeDir Directories="$(SourceBuildReferencePackagesDestination)" />
@@ -68,7 +68,7 @@
       Lines="@(VersionFileContent)"
       Overwrite="true" />
 
-    <Exec Command="tar --numeric-owner --exclude='Microsoft.SourceBuild.Intermediate.*.nupkg' -czf $(SourceBuiltTarballName) $(SourceBuiltVersionFileName) *.nupkg *.props SourceBuildReferencePackages/"
+    <Exec Command="tar --numeric-owner --exclude='Microsoft.SourceBuild.Intermediate.*.nupkg' -czf $(SourceBuiltTarballName) --strip-components=1 ."
           WorkingDirectory="$(SourceBuiltBasePackagesPath)" />
 
     <Message Importance="High" Text="Packaged source-built artifacts to $(SourceBuiltTarballName)" />

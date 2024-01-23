@@ -69,7 +69,7 @@
       Overwrite="true" />
 
     <ItemGroup>
-      <_AllRepoDirs>$([System.IO.Directory]::GetDirectories($(SourceBuiltBasePackagesPath)))</_AllRepoDirs>
+      <_AllRepoDirs Include="$([System.IO.Directory]::GetDirectories($(SourceBuiltBasePackagesPath)))" />
       <_TarDirArg Include="@(_AllRepoDirs->'-C %(Identity) .')" />
     </ItemGroup>
     <PropertyGroup>

@@ -18,7 +18,8 @@
     <Copy SourceFiles="$(CurrentSourceBuiltPackageVersionPropsPath)" DestinationFiles="$(SourceBuiltPackagesPath)PackageVersions.props" />
 
     <PropertyGroup>
-      <SourceBuildReferencePackagesDestination>$(SourceBuiltPackagesPath)SourceBuildReferencePackages/</SourceBuildReferencePackagesDestination>
+      <SourceBuildReferencePackagesDestinationDirName>SourceBuildReferencePackages</SourceBuildReferencePackagesDestinationDirName>
+      <SourceBuildReferencePackagesDestination>$(SourceBuiltPackagesPath)$(SourceBuildReferencePackagesDestinationDirName)/</SourceBuildReferencePackagesDestination>
     </PropertyGroup>
 
     <ItemGroup>
@@ -49,15 +50,16 @@
     <MakeDir Directories="$(SharedOutputPath)" />
 
     <ItemGroup>
+      <_ExcludedRepoDirs Include="$(SourceBuiltBasePackagesPath)package-source-build;$(SourceBuiltBasePackagesPath)source-build-reference-packages" />
       <_AllRepoDirs Include="$([System.IO.Directory]::GetDirectories($(SourceBuiltBasePackagesPath)))"
-                    Exclude="$(SourceBuiltBasePackagesPath)package-source-build" />
+                    Exclude="@(_ExcludedRepoDirs)" />
       <_TarDirArg Include="@(_AllRepoDirs->'-C %(Identity) .')" />
     </ItemGroup>
     <PropertyGroup>
       <_TarDirArgs>@(_TarDirArg, ' ')</_TarDirArgs>
     </PropertyGroup>
 
-    <Exec Command="tar --numeric-owner --exclude='Microsoft.SourceBuild.Intermediate.*.nupkg' -czf $(SourceBuiltTarballName) -C $(RepositoryName) ./$(SourceBuiltVersionFileName) $(_TarDirArgs) -C $(SourceBuildReferencePackagesDestination) ."
+    <Exec Command="tar --numeric-owner --exclude='Microsoft.SourceBuild.Intermediate.*.nupkg' -czf $(SourceBuiltTarballName) -C $(RepositoryName) ./$(SourceBuiltVersionFileName) $(_TarDirArgs) -C $(SourceBuildReferencePackagesDestination) ./$(SourceBuildReferencePackagesDestinationDirName)"
           WorkingDirectory="$(SourceBuiltBasePackagesPath)" />
 
     <Message Importance="High" Text="Packaged source-built artifacts to $(SourceBuiltTarballName)" />

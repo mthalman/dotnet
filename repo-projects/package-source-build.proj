@@ -59,7 +59,7 @@
       <_TarDirArgs>@(_TarDirArg, ' ')</_TarDirArgs>
     </PropertyGroup>
 
-    <Exec Command="tar --numeric-owner --exclude='Microsoft.SourceBuild.Intermediate.*.nupkg' -czf $(SourceBuiltTarballName) -C $(RepositoryName) ./$(SourceBuiltVersionFileName) $(_TarDirArgs) -C $(SourceBuildReferencePackagesDestination) ./$(SourceBuildReferencePackagesDestinationDirName)"
+    <Exec Command="tar --numeric-owner --exclude='Microsoft.SourceBuild.Intermediate.*.nupkg' -czf $(SourceBuiltTarballName) -C $(RepositoryName) ./$(SourceBuiltVersionFileName) $(_TarDirArgs) -C $(SourceBuiltPackagesPath) ./$(SourceBuildReferencePackagesDestinationDirName)"
           WorkingDirectory="$(SourceBuiltBasePackagesPath)" />
 
     <Message Importance="High" Text="Packaged source-built artifacts to $(SourceBuiltTarballName)" />

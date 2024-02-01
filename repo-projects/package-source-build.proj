@@ -50,7 +50,7 @@
 
     <ItemGroup>
       <_AllRepoDirs Include="$([System.IO.Directory]::GetDirectories($(SourceBuiltBasePackagesPath)))"
-                    Condition="!$([System.String]::new('%(Identity)').EndsWith('package-source-build'))" />
+                    Exclude="$(SourceBuiltBasePackagesPath)package-source-build" />
       <_TarDirArg Include="@(_AllRepoDirs->'-C %(Identity) .')" />
     </ItemGroup>
     <PropertyGroup>

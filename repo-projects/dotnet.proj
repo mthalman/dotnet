@@ -13,9 +13,6 @@
   <ItemGroup>
     <RepositoryReference Include="installer" />
     <RepositoryReference Include="package-source-build" Condition="'$(DotNetBuildSourceOnly)' == 'true'" />
-
-    <!-- Testing. -->
-    <RepositoryReference Include="scenario-tests" />
   </ItemGroup>
 
 </Project>

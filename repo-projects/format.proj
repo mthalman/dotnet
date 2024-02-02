@@ -2,12 +2,12 @@
 
   <ItemGroup>
     <RepositoryReference Include="arcade" />
+    <RepositoryReference Include="command-line-api" />
     <RepositoryReference Include="roslyn" />
     <RepositoryReference Include="source-build-externals" Condition="'$(DotNetBuildSourceOnly)' == 'true'" />
     <RepositoryReference Include="source-build-reference-packages" Condition="'$(DotNetBuildSourceOnly)' == 'true'" />
-    <RepositoryReference Include="symreader" />
-    <RepositoryReference Include="command-line-api" />
     <RepositoryReference Include="sourcelink" />
+    <RepositoryReference Include="symreader" />
   </ItemGroup>
 
 </Project>

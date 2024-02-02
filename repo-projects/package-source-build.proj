@@ -50,7 +50,8 @@
     <MakeDir Directories="$(SharedOutputPath)" />
 
     <ItemGroup>
-      <_AllRepoDirs Include="$([System.IO.Directory]::GetDirectories($(SourceBuiltBasePackagesPath)))" />
+      <_AllRepoDirs Include="$([System.IO.Directory]::GetDirectories($(SourceBuiltBasePackagesPath)))"
+                    Exclude="$(SourceBuiltBasePackagesPath)package-source-build" />
     </ItemGroup>
 
     <!-- Create a layout directory for the files that are to be included in the directory. Since there are a large number of files, this will use symlinks
@@ -61,6 +62,7 @@
     <MakeDir Directories="$(_SourceBuiltLayoutDir)/$(SourceBuildReferencePackagesDestinationDirName)" />
     <Exec Command="ln -s %(_AllRepoDirs.Identity)/* $(_SourceBuiltLayoutDir)"
           Condition="$([System.IO.Directory]::GetFiles('%(_AllRepoDirs.Identity)')) != ''" />
+    <Exec Command="ln -s $(SourceBuiltPackagesPath)$(SourceBuiltVersionFileName) $(_SourceBuiltLayoutDir)" />
     <Exec Command="ln -s $(SourceBuildReferencePackagesDestination)* $(_SourceBuiltLayoutDir)/$(SourceBuildReferencePackagesDestinationDirName)" />
 
     <Exec Command="tar --numeric-owner --exclude='Microsoft.SourceBuild.Intermediate.*.nupkg' -czhf $(SourceBuiltTarballName) ."

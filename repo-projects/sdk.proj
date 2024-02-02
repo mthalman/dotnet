@@ -21,6 +21,7 @@
     <RepositoryReference Include="format" />
     <RepositoryReference Include="fsharp" />
     <RepositoryReference Include="msbuild" />
+    <RepositoryReference Include="nuget-client" />
     <RepositoryReference Include="razor" />
     <RepositoryReference Include="roslyn" />
     <RepositoryReference Include="roslyn-analyzers" />

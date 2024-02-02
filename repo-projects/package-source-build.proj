@@ -53,14 +53,20 @@
       <_ExcludedRepoDirs Include="$(SourceBuiltBasePackagesPath)package-source-build;$(SourceBuiltBasePackagesPath)source-build-reference-packages" />
       <_AllRepoDirs Include="$([System.IO.Directory]::GetDirectories($(SourceBuiltBasePackagesPath)))"
                     Exclude="@(_ExcludedRepoDirs)" />
-      <_TarDirArg Include="@(_AllRepoDirs->'-C %(Identity) .')" />
     </ItemGroup>
-    <PropertyGroup>
-      <_TarDirArgs>@(_TarDirArg, ' ')</_TarDirArgs>
-    </PropertyGroup>
 
-    <Exec Command="tar --numeric-owner --exclude='Microsoft.SourceBuild.Intermediate.*.nupkg' -czf $(SourceBuiltTarballName) -C $(RepositoryName) ./$(SourceBuiltVersionFileName) $(_TarDirArgs) -C $(SourceBuiltPackagesPath) ./$(SourceBuildReferencePackagesDestinationDirName)"
-          WorkingDirectory="$(SourceBuiltBasePackagesPath)" />
+    <!-- Create a layout directory for the files that are to be included in the directory. Since there are a large number of files, this will use symlinks
+         instead of copying directories to make this a fast process. -->
+    <PropertyGroup>
+      <_SourceBuiltLayoutDir>$(BaseIntermediateOutputPath)artifacts-layout</_SourceBuiltLayoutDir>
+    </PropertyGroup>
+    <MakeDir Directories="$(_SourceBuiltLayoutDir);$(_SourceBuiltLayoutDir)/$(SourceBuildReferencePackagesDestinationDirName)" />
+    <Exec Command="ln -s %(_AllRepoDirs)/* $(_SourceBuiltLayoutDir)" />
+    <Exec Command="ln -s $(SourceBuiltVersionFileName) $(_SourceBuiltLayoutDir)" />
+    <Exec Command="ln -s $(SourceBuildReferencePackagesDestination)* $(_SourceBuiltLayoutDir)/$(SourceBuildReferencePackagesDestinationDirName)" />
+
+    <Exec Command="tar --numeric-owner --exclude='Microsoft.SourceBuild.Intermediate.*.nupkg' -czhf $(SourceBuiltTarballName) ."
+          WorkingDirectory="$(_SourceBuiltLayoutDir)" />
 
     <Message Importance="High" Text="Packaged source-built artifacts to $(SourceBuiltTarballName)" />
   </Target>

@@ -61,7 +61,7 @@
       <_SourceBuiltLayoutDir>$(BaseIntermediateOutputPath)artifacts-layout</_SourceBuiltLayoutDir>
     </PropertyGroup>
     <MakeDir Directories="$(_SourceBuiltLayoutDir);$(_SourceBuiltLayoutDir)/$(SourceBuildReferencePackagesDestinationDirName)" />
-    <Exec Command="ln -s %(_AllRepoDirs)/* $(_SourceBuiltLayoutDir)" />
+    <Exec Command="ln -s %(_AllRepoDirs.Identity)/* $(_SourceBuiltLayoutDir)" />
     <Exec Command="ln -s $(SourceBuiltVersionFileName) $(_SourceBuiltLayoutDir)" />
     <Exec Command="ln -s $(SourceBuildReferencePackagesDestination)* $(_SourceBuiltLayoutDir)/$(SourceBuildReferencePackagesDestinationDirName)" />
 

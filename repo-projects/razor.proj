@@ -2,6 +2,8 @@
 
   <ItemGroup>
     <RepositoryReference Include="arcade" />
+    <RepositoryReference Include="aspnetcore" />
+    <RepositoryReference Include="runtime" />
     <RepositoryReference Include="source-build-reference-packages" Condition="'$(DotNetBuildSourceOnly)' == 'true'" />
   </ItemGroup>
 

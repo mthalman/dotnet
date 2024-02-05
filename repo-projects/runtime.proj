@@ -37,9 +37,9 @@
   </ItemGroup>
 
   <!-- Environment Variables -->
-  <ItemGroup>
+  <!-- <ItemGroup>
     <EnvironmentVariables Include="BuildInParallel=true" />
-  </ItemGroup>
+  </ItemGroup> -->
 
   <ItemGroup>
     <SourceBuiltSdkOverride Include="@(ArcadeSharedFrameworkSdkOverride)" />

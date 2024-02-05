@@ -295,7 +295,7 @@
 
     <MSBuild Projects="@(_DependentProject)"
              Targets="Build"
-             BuildInParallel="true"
+             BuildInParallel="$(BuildInParallel)"
              StopOnFirstFailure="true" />
   </Target>
 

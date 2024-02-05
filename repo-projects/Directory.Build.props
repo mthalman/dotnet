@@ -5,7 +5,7 @@
   <PropertyGroup>
     <RepositoryName>$(MSBuildProjectName)</RepositoryName>
     <GitInfoRepoPropsFile>$(GitInfoDir)$(RepositoryName).props</GitInfoRepoPropsFile>
-    <BuildInParallel Condition="'$(BuildInParallel)' == ''">true</BuildInParallel>
+    <!-- <BuildInParallel Condition="'$(BuildInParallel)' == ''">true</BuildInParallel> -->
   </PropertyGroup>
 
   <Import Project="$(GitInfoRepoPropsFile)" Condition="Exists('$(GitInfoRepoPropsFile)')" />

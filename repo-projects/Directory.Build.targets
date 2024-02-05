@@ -45,6 +45,10 @@
     <RepositoryReference Remove="installer" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbedInBinlog Include="$(NuGetConfigFile)" />
+  </ItemGroup>
+
   <UsingTask AssemblyFile="$(XPlatSourceBuildTasksAssembly)" TaskName="AddSourceToNuGetConfig" />
   <UsingTask AssemblyFile="$(XPlatSourceBuildTasksAssembly)" TaskName="ReadNuGetPackageInfos" />
   <UsingTask AssemblyFile="$(XPlatSourceBuildTasksAssembly)" TaskName="RemoveInternetSourcesFromNuGetConfig" />

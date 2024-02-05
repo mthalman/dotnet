@@ -45,10 +45,6 @@
     <RepositoryReference Remove="installer" />
   </ItemGroup>
 
-  <ItemGroup>
-    <EmbedInBinlog Include="$(NuGetConfigFile)" />
-  </ItemGroup>
-
   <UsingTask AssemblyFile="$(XPlatSourceBuildTasksAssembly)" TaskName="AddSourceToNuGetConfig" />
   <UsingTask AssemblyFile="$(XPlatSourceBuildTasksAssembly)" TaskName="ReadNuGetPackageInfos" />
   <UsingTask AssemblyFile="$(XPlatSourceBuildTasksAssembly)" TaskName="RemoveInternetSourcesFromNuGetConfig" />
@@ -173,6 +169,10 @@
     <Touch Files="$(BaseIntermediateOutputPath)UpdateNuGetConfig.complete" AlwaysCreate="true">
       <Output TaskParameter="TouchedFiles" ItemName="FileWrites" />
     </Touch>
+
+    <ItemGroup>
+      <EmbedInBinlog Include="$(NuGetConfigFile)" />
+  </ItemGroup>
   </Target>
 
   <!-- Update the SDK version in the repo's global.json file.

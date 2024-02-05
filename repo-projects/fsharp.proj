@@ -21,6 +21,7 @@
   <ItemGroup>
     <RepositoryReference Include="arcade" />
     <RepositoryReference Include="msbuild" />
+    <RepositoryReference Include="runtime" />
     <RepositoryReference Include="source-build-reference-packages" Condition="'$(DotNetBuildSourceOnly)' == 'true'" />
     <RepositoryReference Include="sourcelink" />
   </ItemGroup>

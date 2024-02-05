@@ -60,11 +60,11 @@
       <_SourceBuiltLayoutDir>$(BaseIntermediateOutputPath)artifacts-layout</_SourceBuiltLayoutDir>
     </PropertyGroup>
     <MakeDir Directories="$(_SourceBuiltLayoutDir)/$(SourceBuildReferencePackagesDestinationDirName)" />
-    <Exec Command="ln -s %(_AllRepoDirs.Identity)/* $(_SourceBuiltLayoutDir)"
+    <Exec Command="ln -sf %(_AllRepoDirs.Identity)/* $(_SourceBuiltLayoutDir)"
           Condition="$([System.IO.Directory]::GetFiles('%(_AllRepoDirs.Identity)')) != ''" />
-    <Exec Command="ln -s $(SourceBuiltPackagesPath)$(SourceBuiltVersionFileName) $(_SourceBuiltLayoutDir)" />
-    <Exec Command="ln -s $(SourceBuiltPackagesPath)PackageVersions.props $(_SourceBuiltLayoutDir)" />
-    <Exec Command="ln -s $(SourceBuildReferencePackagesDestination)* $(_SourceBuiltLayoutDir)/$(SourceBuildReferencePackagesDestinationDirName)" />
+    <Exec Command="ln -sf $(SourceBuiltPackagesPath)$(SourceBuiltVersionFileName) $(_SourceBuiltLayoutDir)" />
+    <Exec Command="ln -sf $(SourceBuiltPackagesPath)PackageVersions.props $(_SourceBuiltLayoutDir)" />
+    <Exec Command="ln -sf $(SourceBuildReferencePackagesDestination)* $(_SourceBuiltLayoutDir)/$(SourceBuildReferencePackagesDestinationDirName)" />
 
     <Exec Command="tar --numeric-owner --exclude='Microsoft.SourceBuild.Intermediate.*.nupkg' -czhf $(SourceBuiltTarballName) *"
           WorkingDirectory="$(_SourceBuiltLayoutDir)" />

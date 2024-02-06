@@ -14,9 +14,6 @@
   <Target Name="CustomRepoBuild"
           AfterTargets="RepoBuild"
           DependsOnTargets="CreateBuildInputProps;DetermineSourceBuiltSdkVersion">
-    <!-- Copy PVP to packages dir in order to package them together -->
-    <Copy SourceFiles="$(CurrentSourceBuiltPackageVersionPropsPath)" DestinationFiles="$(SourceBuiltPackagesPath)PackageVersions.props" />
-
     <PropertyGroup>
       <SourceBuildReferencePackagesDestinationDirName>SourceBuildReferencePackages</SourceBuildReferencePackagesDestinationDirName>
       <SourceBuildReferencePackagesDestination>$(SourceBuiltPackagesPath)$(SourceBuildReferencePackagesDestinationDirName)/</SourceBuildReferencePackagesDestination>
@@ -63,7 +60,7 @@
     <Exec Command="ln -sf %(_AllRepoDirs.Identity)/* $(_SourceBuiltLayoutDir)"
           Condition="$([System.IO.Directory]::GetFiles('%(_AllRepoDirs.Identity)')) != ''" />
     <Exec Command="ln -sf $(SourceBuiltPackagesPath)$(SourceBuiltVersionFileName) $(_SourceBuiltLayoutDir)" />
-    <Exec Command="ln -sf $(SourceBuiltPackagesPath)PackageVersions.props $(_SourceBuiltLayoutDir)" />
+    <Exec Command="ln -sf $(CurrentSourceBuiltPackageVersionPropsPath) $(_SourceBuiltLayoutDir)PackageVersions.props" />
     <Exec Command="ln -sf $(SourceBuildReferencePackagesDestination)* $(_SourceBuiltLayoutDir)/$(SourceBuildReferencePackagesDestinationDirName)" />
 
     <Exec Command="tar --numeric-owner --exclude='Microsoft.SourceBuild.Intermediate.*.nupkg' -czhf $(SourceBuiltTarballName) $(SourceBuiltVersionFileName) *"

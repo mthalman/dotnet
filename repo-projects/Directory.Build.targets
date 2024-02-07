@@ -25,26 +25,6 @@
     <RepoManifestFile>$([MSBuild]::NormalizePath('$(ProjectDirectory)', 'artifacts', 'RepoManifest.xml'))</RepoManifestFile>
   </PropertyGroup>
 
-  <!-- Exclude repositories that currently don't build when not building source-only. -->
-  <ItemGroup Condition="'$(DotNetBuildSourceOnly)' != 'true'">
-    <RepositoryReference Remove="roslyn" />
-    <RepositoryReference Remove="wpf" />
-    <RepositoryReference Remove="msbuild" />
-    <RepositoryReference Remove="roslyn-analyzers" />
-    <RepositoryReference Remove="aspnetcore" />
-    <RepositoryReference Remove="razor" />
-    <RepositoryReference Remove="deployment-tools" />
-    <RepositoryReference Remove="format" />
-    <RepositoryReference Remove="nuget-client" />
-    <RepositoryReference Remove="templating" />
-    <RepositoryReference Remove="test-templates" />
-    <RepositoryReference Remove="fsharp" />
-    <RepositoryReference Remove="vstest" />
-    <RepositoryReference Remove="sdk" />
-    <RepositoryReference Remove="aspire" />
-    <RepositoryReference Remove="installer" />
-  </ItemGroup>
-
   <UsingTask AssemblyFile="$(XPlatSourceBuildTasksAssembly)" TaskName="AddSourceToNuGetConfig" />
   <UsingTask AssemblyFile="$(XPlatSourceBuildTasksAssembly)" TaskName="ReadNuGetPackageInfos" />
   <UsingTask AssemblyFile="$(XPlatSourceBuildTasksAssembly)" TaskName="RemoveInternetSourcesFromNuGetConfig" />
@@ -55,9 +35,10 @@
   <UsingTask AssemblyFile="$(XPlatSourceBuildTasksAssembly)" TaskName="WritePackageUsageData" />
   <UsingTask AssemblyFile="$(XPlatSourceBuildTasksAssembly)" TaskName="WriteUsageReports" />
   
-  <Target Name="GetRepositoryReferenceInfo">
+  <Target Name="GetRepositoryReferenceInfo"
+          DependsOnTargets="GetTransitiveRepositoryReferences">
     <ItemGroup>
-      <RepositoryReferenceInfo Include="@(RepositoryReference)">
+      <RepositoryReferenceInfo Include="@(TransitiveRepositoryReference)">
         <SourceName>source-built-%(Identity)</SourceName>
         <PackagesPath>$(SourceBuiltBasePackagesPath)%(Identity)/</PackagesPath>
       </RepositoryReferenceInfo>
@@ -286,11 +267,11 @@
 
   <!-- SkipRepoReferences is a developer innerloop switch to skip building dependencies. -->
   <Target Name="BuildRepoReferences"
-          Condition="'@(RepositoryReference)' != '' and '$(SkipRepoReferences)' != 'true'">
-    <Message Importance="High" Text="Building dependencies [@(RepositoryReference)] needed by '$(RepositoryName)'." />
+          Condition="'@(TransitiveRepositoryReference)' != '' and '$(SkipRepoReferences)' != 'true'">
+    <Message Importance="High" Text="Building dependencies [@(TransitiveRepositoryReference)] needed by '$(RepositoryName)'." />
 
     <ItemGroup>
-      <_DependentProject Include="@(RepositoryReference -> '%(Identity).proj')" />
+      <_DependentProject Include="@(TransitiveRepositoryReference -> '%(Identity).proj')" />
     </ItemGroup>
 
     <MSBuild Projects="@(_DependentProject)"
@@ -816,4 +797,71 @@
   <Target Name="GetProjectDirectory" Outputs="$(ProjectDirectory)" />
   <Target Name="GetRepositoryReferences" Outputs="@(RepositoryReference)" />
 
+  <!-- Returns the repository references of this project and all the projects this project references, recursively -->
+  <Target Name="GetTransitiveRepositoryReferences" Outputs="@(TransitiveRepositoryReference)">
+    <ItemGroup>
+      <_TransitiveRepositoryReference Include="@(RepositoryReference)" />
+    </ItemGroup>
+
+    <MSBuild Projects="@(RepositoryReference->'%(Identity).proj')"
+             Targets="GetTransitiveRepositoryReferences">
+      <Output TaskParameter="TargetOutputs" ItemName="_DependencyTransitiveRepositoryReference" />
+    </MSBuild>
+
+    <!-- When items are transferred between projects, they get metadata indicating their source (e.g. MSBuildSourceProjectFile).
+         This is problematic because it causes introduces distinctness on the items. For example, an arcade RepositoryReference
+         that comes from both msbuild and source-build-externals will be treated as two separate items. But we only want one arcade
+         reference. To prevent this from happening, we need to remove the extra metadata so the two references can be seen as duplicates. -->
+    <ItemGroup>
+      <_TransitiveRepositoryReference Include="@(_DependencyTransitiveRepositoryReference)"
+                                      RemoveMetadata="MSBuildSourceProjectFile;MSBuildSourceTargetName;OriginalItemSpec" />
+      <TransitiveRepositoryReference Include="@(_TransitiveRepositoryReference)" KeepDuplicates="false" />
+    </ItemGroup>
+
+    <!-- Exclude repositories that currently don't build when not building source-only. -->
+    <ItemGroup Condition="'$(DotNetBuildSourceOnly)' != 'true'">
+      <TransitiveRepositoryReference Remove="roslyn" />
+      <TransitiveRepositoryReference Remove="wpf" />
+      <TransitiveRepositoryReference Remove="msbuild" />
+      <TransitiveRepositoryReference Remove="roslyn-analyzers" />
+      <TransitiveRepositoryReference Remove="aspnetcore" />
+      <TransitiveRepositoryReference Remove="razor" />
+      <TransitiveRepositoryReference Remove="deployment-tools" />
+      <TransitiveRepositoryReference Remove="format" />
+      <TransitiveRepositoryReference Remove="nuget-client" />
+      <TransitiveRepositoryReference Remove="templating" />
+      <TransitiveRepositoryReference Remove="test-templates" />
+      <TransitiveRepositoryReference Remove="fsharp" />
+      <TransitiveRepositoryReference Remove="vstest" />
+      <TransitiveRepositoryReference Remove="sdk" />
+      <TransitiveRepositoryReference Remove="aspire" />
+      <TransitiveRepositoryReference Remove="installer" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="ShowDependencyGraph">
+
+    <MSBuild Projects="$(MSBuildProjectFullPath)"
+             Targets="GetDependencyGraphString"
+             Properties="DependencyGraphIndent=">
+      <Output TaskParameter="TargetOutputs" PropertyName="DependencyGraphString" />
+    </MSBuild>
+
+    <Message Importance="High" Text="$(DependencyGraphString)" />
+  </Target>
+
+  <Target Name="GetDependencyGraphString"
+          DependsOnTargets="GetTransitiveRepositoryReferences"
+          Outputs="$(DependencyGraphString)">
+    
+    <MSBuild Projects="@(RepositoryReference->'%(Identity).proj')"
+             Targets="GetDependencyGraphString"
+             Properties="DependencyGraphIndent=&quot;$(DependencyGraphIndent)  &quot;">
+      <Output TaskParameter="TargetOutputs" PropertyName="_DependencyGraphString" />
+    </MSBuild>
+
+    <PropertyGroup>
+      <DependencyGraphString>$(DependencyGraphIndent);$(RepositoryName)%0a$(_DependencyGraphString);</DependencyGraphString>
+    </PropertyGroup>
+  </Target>
 </Project>

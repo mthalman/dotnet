@@ -65,7 +65,7 @@
     <Exec Command="ln -sf $(CurrentSourceBuiltPackageVersionPropsPath) $(_SourceBuiltLayoutDir)PackageVersions.props" />
     <Exec Command="ln -sf $(SourceBuildReferencePackagesDestination)* $(_SourceBuiltLayoutDir)$(SourceBuildReferencePackagesDestinationDirName)" />
 
-    <Exec Command="tar --numeric-owner --exclude='Microsoft.SourceBuild.Intermediate.*.nupkg' -czhf $(SourceBuiltTarballName) $(SourceBuiltVersionFileName) *"
+    <Exec Command="tar --numeric-owner -czhf $(SourceBuiltTarballName) $(SourceBuiltVersionFileName) *"
           WorkingDirectory="$(_SourceBuiltLayoutDir)" />
 
     <Message Importance="High" Text="Packaged source-built artifacts to $(SourceBuiltTarballName)" />

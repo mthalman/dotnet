@@ -146,6 +146,10 @@ while [[ $# > 0 ]]; do
     --sourcebuild)
       source_build=true
       ;;
+    --tfm)
+      tfm=$2
+      shift
+      ;;
     /p:*)
       properties="$properties $1"
       ;;

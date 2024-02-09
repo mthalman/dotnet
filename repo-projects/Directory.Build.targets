@@ -847,21 +847,30 @@
       <Output TaskParameter="TargetOutputs" PropertyName="DependencyGraphString" />
     </MSBuild>
 
-    <Message Importance="High" Text="$(DependencyGraphString)" />
+    <Message Importance="High" Text="$(DependencyGraphString.Replace('_', ' ').Trim())" />
   </Target>
 
   <Target Name="GetDependencyGraphString"
           DependsOnTargets="GetTransitiveRepositoryReferences"
           Outputs="$(DependencyGraphString)">
+
+    <PropertyGroup>
+      <_NextIndent>$(DependencyGraphIndent)__</_NextIndent>
+    </PropertyGroup>
     
     <MSBuild Projects="@(RepositoryReference->'%(Identity).proj')"
              Targets="GetDependencyGraphString"
-             Properties="DependencyGraphIndent=&quot;$(DependencyGraphIndent)  &quot;">
-      <Output TaskParameter="TargetOutputs" PropertyName="_DependencyGraphString" />
+             Properties="DependencyGraphIndent=$(_NextIndent)">
+      <Output TaskParameter="TargetOutputs" ItemName="_DependencyGraphString" />
     </MSBuild>
 
     <PropertyGroup>
-      <DependencyGraphString>$(DependencyGraphIndent);$(RepositoryName)%0a$(_DependencyGraphString);</DependencyGraphString>
+      <_DependencyGraphString>@(_DependencyGraphString, '')</_DependencyGraphString>
     </PropertyGroup>
+
+    <PropertyGroup>
+      <DependencyGraphString>$(DependencyGraphIndent)-_$(RepositoryName)%0a$(_DependencyGraphString)</DependencyGraphString>
+    </PropertyGroup>
+
   </Target>
 </Project>

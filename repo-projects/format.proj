@@ -1,10 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <RepositoryReference Include="arcade" />
-    <RepositoryReference Include="roslyn" />
-    <RepositoryReference Include="roslyn-analyzers" />
+    <RepositoryReference Include="msbuild" Condition="'$(DotNetBuildSourceOnly)' == 'true'" />
+    <RepositoryReference Include="roslyn-analyzers" Condition="'$(DotNetBuildSourceOnly)' == 'true'" />
     <RepositoryReference Include="source-build-externals" Condition="'$(DotNetBuildSourceOnly)' == 'true'" />
+    <RepositoryReference Include="source-build-reference-packages" Condition="'$(DotNetBuildSourceOnly)' == 'true'" />
+    <RepositoryReference Include="symreader" />
   </ItemGroup>
 
 </Project>

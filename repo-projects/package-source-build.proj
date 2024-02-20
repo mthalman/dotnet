@@ -7,6 +7,11 @@
     <EnableSourceControlManagerQueries>false</EnableSourceControlManagerQueries>
   </PropertyGroup>
 
+  <ItemGroup>
+    <RepositoryReference Include="installer" />
+    <RepositoryReference Include="scenario-tests" />
+  </ItemGroup>
+
   <Target Name="CustomRepoBuild"
           AfterTargets="RepoBuild"
           DependsOnTargets="CreateBuildInputProps;DetermineSourceBuiltSdkVersion">
@@ -25,8 +30,6 @@
       Lines="@(VersionFileContent)"
       Overwrite="true" />
 
-    <MakeDir Directories="$(SharedOutputPath)" />
-
     <ItemGroup>
       <_AllRepoDirs Include="$([System.IO.Directory]::GetDirectories($(ArtifactsShippingPackagesDir)))" />
       <_AllRepoDirs Include="$([System.IO.Directory]::GetDirectories($(ArtifactsNonShippingPackagesDir)))" />
@@ -39,21 +42,23 @@
       <SourceBuildReferencePackagesDestinationDirName>SourceBuildReferencePackages</SourceBuildReferencePackagesDestinationDirName>
     </PropertyGroup>
     <MakeDir Directories="$(_SourceBuiltLayoutDir)$(SourceBuildReferencePackagesDestinationDirName)" />
-    <Exec Command="ln -sf %(_AllRepoDirs.Identity)/* $(_SourceBuiltLayoutDir)"
-          Condition="$([System.IO.Directory]::GetFiles('%(_AllRepoDirs.Identity)')) != ''" />
-    <Exec Command="ln -sf $(BaseIntermediateOutputPath)$(SourceBuiltVersionFileName) $(_SourceBuiltLayoutDir)" />
-    <Exec Command="ln -sf $(CurrentSourceBuiltPackageVersionPropsPath) $(_SourceBuiltLayoutDir)PackageVersions.props" />
-    <Exec Command="ln -sf $(ReferencePackagesDir)* $(_SourceBuiltLayoutDir)$(SourceBuildReferencePackagesDestinationDirName)" />
+    <Copy SourceFiles="%(_AllRepoDirs.Identity)/**"
+          DestinationFolder="$(_SourceBuiltLayoutDir)"
+          UseSymbolicLinksIfPossible="true" />
+    <Copy SourceFiles="$(BaseIntermediateOutputPath)$(SourceBuiltVersionFileName)"
+          DestinationFolder="$(_SourceBuiltLayoutDir)"
+          UseSymbolicLinksIfPossible="true" />
+    <Copy SourceFiles="$(CurrentSourceBuiltPackageVersionPropsPath)"
+          DestinationFiles="$(_SourceBuiltLayoutDir)PackageVersions.props"
+          UseSymbolicLinksIfPossible="true" />
+    <Copy SourceFiles="$(ReferencePackagesDir)**"
+          DestinationFolder="$(_SourceBuiltLayoutDir)$(SourceBuildReferencePackagesDestinationDirName)"
+          UseSymbolicLinksIfPossible="true" />
 
     <Exec Command="tar --numeric-owner -czhf $(SourceBuiltTarballName) $(SourceBuiltVersionFileName) *"
           WorkingDirectory="$(_SourceBuiltLayoutDir)" />
 
     <Message Importance="High" Text="Packaged source-built artifacts to $(SourceBuiltTarballName)" />
   </Target>
-
-  <ItemGroup>
-    <RepositoryReference Include="installer" />
-    <RepositoryReference Include="scenario-tests" />
-  </ItemGroup>
 
 </Project>

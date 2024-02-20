@@ -47,13 +47,14 @@
     <!-- SBRP is explicitly excluded since it is output to its own special directory, $(ReferencePackagesDir). -->
     <ItemGroup Condition="'@(TransitiveRepositoryReference)' != ''">
       <RepositoryReferenceInfo Include="@(TransitiveRepositoryReference)"
-                               Condition="'%(Identity)' != 'source-build-reference-packages'">
+                               Exclude="source-build-reference-packages">
         <ShippingSourceName>source-built-%(Identity)</ShippingSourceName>
         <NonShippingSourceName>source-built-transport-%(Identity)</NonShippingSourceName>
         <ShippingPackagesPath>$(ArtifactsShippingPackagesDir)/%(Identity)/</ShippingPackagesPath>
         <NonShippingPackagesPath>$(ArtifactsNonShippingPackagesDir)/%(Identity)/</NonShippingPackagesPath>
       </RepositoryReferenceInfo>
     </ItemGroup>
+
     <ItemGroup Condition="'@(RepositoryReferenceInfo)' != ''">
       <DependentRepoSourceName Include="@(RepositoryReferenceInfo->'%(ShippingSourceName)')" />
       <DependentRepoSourceName Include="@(RepositoryReferenceInfo->'%(NonShippingSourceName)')" />
@@ -173,8 +174,10 @@
     </Touch>
 
     <ItemGroup>
+      <!-- This is defined in this target to ensure the NuGet.config file is updated before it gets embedded. If this item
+           was define globally, it would immediately get embedded with the original, unmodified version of the file. -->
       <EmbedInBinlog Include="$(NuGetConfigFile)" />
-  </ItemGroup>
+    </ItemGroup>
   </Target>
 
   <!-- Update the SDK version in the repo's global.json file.
@@ -345,8 +348,6 @@
     </PropertyGroup>
 
     <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(RepoConsoleLogFile)'));
-                          $(RepoArtifactsShippingPackagesDir);
-                          $(RepoArtifactsNonShippingPackagesDir);
                           $(ArtifactsAssetsDir)" />
 
     <!-- Create directories for extra debugging. -->
@@ -734,17 +735,17 @@
 
     <!-- Exclude repositories that currently don't build when not building source-only. -->
     <ItemGroup Condition="'$(DotNetBuildSourceOnly)' != 'true'">
-	  <RepositoryReference Remove="roslyn" />
-	  <RepositoryReference Remove="msbuild" />
-	  <RepositoryReference Remove="aspnetcore" />
-	  <RepositoryReference Remove="razor" />
-	  <RepositoryReference Remove="format" />
-	  <RepositoryReference Remove="nuget-client" />
-	  <RepositoryReference Remove="fsharp" />
-	  <RepositoryReference Remove="vstest" />
-	  <RepositoryReference Remove="aspire" />
-	  <RepositoryReference Remove="installer" />
-	</ItemGroup>
+      <RepositoryReference Remove="roslyn" />
+      <RepositoryReference Remove="msbuild" />
+      <RepositoryReference Remove="aspnetcore" />
+      <RepositoryReference Remove="razor" />
+      <RepositoryReference Remove="format" />
+      <RepositoryReference Remove="nuget-client" />
+      <RepositoryReference Remove="fsharp" />
+      <RepositoryReference Remove="vstest" />
+      <RepositoryReference Remove="aspire" />
+      <RepositoryReference Remove="installer" />
+    </ItemGroup>
   </Target>
 
   <!-- Outputs a dependency graph of the repos, in YAML form, to the console. -->

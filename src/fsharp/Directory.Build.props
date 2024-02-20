@@ -4,6 +4,7 @@
     <LangVersion Condition="'$(FSharpLangVersion)' != ''">$(FSharpLangVersion)</LangVersion>
     <RepoRoot Condition="'$(RepoRoot)' == ''">$(MSBuildThisFileDirectory)</RepoRoot>
     <AccelerateBuildsInVisualStudio>true</AccelerateBuildsInVisualStudio>
+    <FSharpNetCoreProductDefaultTargetFramework>net8.0</FSharpNetCoreProductDefaultTargetFramework>
   </PropertyGroup>
   <!--
    When developers load the FSharp.Compiler.Service solution we set FSHARPCORE_USE_PACKAGE to true if it hasn't already been set to a value.
@@ -36,18 +37,14 @@
     <ArtifactsDir>$(MSBuildThisFileDirectory)artifacts/</ArtifactsDir>
     <OutputPath>$(ArtifactsDir)/bin/$(MSBuildProjectName)/$(Configuration)/</OutputPath>
     <IntermediateOutputPath>$(ArtifactsDir)obj/$(MSBuildProjectName)/$(Configuration)/</IntermediateOutputPath>
-    <FsLexPath>$(ArtifactsDir)/bin/fslex/$(Configuration)/$(FSharpNetCoreProductTargetFramework)/fslex.dll</FsLexPath>
-    <FsYaccPath>$(ArtifactsDir)/bin/fsyacc/$(Configuration)/$(FSharpNetCoreProductTargetFramework)/fsyacc.dll</FsYaccPath>
+    <!-- Note, that default framework is used here (the one we use for development in the current cycle),
+         since it's a non-arcade and non-sourcebuild scenario -->
+    <FsLexPath>$(ArtifactsDir)/bin/fslex/$(Configuration)/$(FSharpNetCoreProductDefaultTargetFramework)/fslex.dll</FsLexPath>
+    <FsYaccPath>$(ArtifactsDir)/bin/fsyacc/$(Configuration)/$(FSharpNetCoreProductDefaultTargetFramework)/fsyacc.dll</FsYaccPath>
   </PropertyGroup>
+  <Import Project="$(MSBuildThisFileDirectory)/eng/Versions.props" Condition="'$(DISABLE_ARCADE)' == 'true'" />
 
-  <Import Project="$(MSBuildThisFileDirectory)/eng/Versions.props" Condition="'$(DISABLE_ARCADE)' == 'true'"/>
-  <Import Project="FSharpBuild.Directory.Build.props" Condition = " '$(FSharpTestCompilerVersion)' == '' "/>
-  <Import Project="FSharpTests.Directory.Build.props" Condition = " '$(FSharpTestCompilerVersion)' != '' "/>
-
-  <ItemGroup>
-    <!-- If there is a README.md next to a project file, include it (for easier access in the IDE) -->
-    <None Include="README.md" Condition="Exists('README.md')" />
-  </ItemGroup>
+  <Import Project="FSharpBuild.Directory.Build.props" Condition=" '$(FSharpTestCompilerVersion)' == '' " />
 
   <!-- To support source-build for the "next" version of .NET without forcing this repo to use it,
       we can utilize arcade's $(NetCurrent) property, and set it ourselves in the arcade-less scenarios. 
@@ -65,9 +62,19 @@
     </When>
     <Otherwise>
       <PropertyGroup>
-        <FSharpNetCoreProductTargetFramework>net8.0</FSharpNetCoreProductTargetFramework>
+        <FSharpNetCoreProductTargetFramework>$(FSharpNetCoreProductDefaultTargetFramework)</FSharpNetCoreProductTargetFramework>
       </PropertyGroup>
     </Otherwise>
   </Choose>
+
+  <!-- It's important we set TFM before this, since FSharpTests.Directory.Build.props uses it.
+       TODO(vlza): this build props looks outdated, since we only use $(FSharpTestCompilerVersion) in TP tests or cambridge suite (which we slowly want to migrate to xUnit).
+                   We probably should remove or revisit it. -->
+  <Import Project="FSharpTests.Directory.Build.props" Condition=" '$(FSharpTestCompilerVersion)' != '' " />
+
+  <ItemGroup>
+    <!-- If there is a README.md next to a project file, include it (for easier access in the IDE) -->
+    <None Include="README.md" Condition="Exists('README.md')" />
+  </ItemGroup>
 
 </Project>

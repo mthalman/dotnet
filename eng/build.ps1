@@ -8,6 +8,7 @@ Param(
   # Actions
   [switch]$clean,
   [switch][Alias('h')]$help,
+  [switch][Alias('t')]$test,
 
   # Advanced settings
   [switch]$buildTests,
@@ -28,6 +29,7 @@ function Get-Usage() {
   Write-Host "Actions:"
   Write-Host "  -clean                  Clean the solution"
   Write-Host "  -help                   Print help and exit (short: -h)"
+  Write-Host "  -test                   Run scenario tests (short: -t)"
   Write-Host ""
 
   Write-Host "Advanced settings:"

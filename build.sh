@@ -18,7 +18,8 @@ usage()
   echo "Actions:"
   echo "  --clean                         Clean the solution"
   echo "  --help                          Print help and exit (short: -h)"
-  echo "  --test                          Run smoke tests (short: -t)"
+  echo "  --test                          Run scenario tests (short: -t)"
+  echo "                                  Use in conjunction with --testnobuild to only run tests"
   echo ""
 
   echo "Source-only settings:"
@@ -39,6 +40,7 @@ usage()
   echo "  --excludeCIBinarylog            Don't output binary log (short: -nobl)"
   echo "  --prepareMachine                Prepare machine for CI run, clean up processes after build"
   echo "  --use-mono-runtime              Output uses the mono runtime"
+  echo "  --testnobuild                   Skip building tests when invoked --test"
   echo ""
   echo "Command line arguments not listed above are passed thru to msbuild."
   echo "Arguments can also be passed in with a single hyphen."
@@ -85,6 +87,7 @@ packagesPreviouslySourceBuiltDir="${packagesDir}previously-source-built/"
 ci=false
 exclude_ci_binary_log=false
 prepare_machine=false
+test_no_build=false
 
 properties=''
 while [[ $# > 0 ]]; do
@@ -112,8 +115,6 @@ while [[ $# > 0 ]]; do
       exit 0
       ;;
     -test|-t)
-      export NUGET_PACKAGES=$NUGET_PACKAGES/smoke-tests
-      properties="$properties /t:RunSmokeTest"
       test=true
       ;;
 
@@ -180,6 +181,9 @@ while [[ $# > 0 ]]; do
     -use-mono-runtime)
       properties="$properties /p:SourceBuildUseMonoRuntime=true"
       ;;
+    -testnobuild)
+      test_no_build=true
+      ;;
 
     *)
       properties="$properties $1"
@@ -193,6 +197,15 @@ if [[ "$ci" == true ]]; then
   if [[ "$exclude_ci_binary_log" == false ]]; then
     binary_log=true
   fi
+fi
+
+if [ "$test" == "true" ]; then
+  export NUGET_PACKAGES=$NUGET_PACKAGES/smoke-tests
+  testTargets="Test"
+  if [ "$test_no_build" != "true" ]; then
+    testTargets="Build;$testTargets"
+  fi
+  properties="$properties /p:DotNetIncludeScenarioTests=true /t:$testTargets"
 fi
 
 . "$scriptroot/eng/common/tools.sh"

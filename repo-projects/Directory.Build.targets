@@ -297,7 +297,8 @@
     <MSBuild Projects="@(_DependentProject)"
              Targets="Build"
              BuildInParallel="$(BuildInParallel)"
-             StopOnFirstFailure="true" />
+             StopOnFirstFailure="true"
+             RunEachTargetSeparately="true" />
   </Target>
 
   <Target Name="SetSourceBuiltSdkOverrides"

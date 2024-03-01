@@ -46,36 +46,35 @@
   </Target>
 
   <PropertyGroup>
-    <ExtractDotNetSdkArchiveDependsOn>CleanScenarioTestsArtifactsDir;CreateDotNetInstallDir</ExtractDotNetSdkArchiveDependsOn>
+    <ExtractDotNetSdkArchiveDependsOn>SetupScenarioTestsArtifacts</ExtractDotNetSdkArchiveDependsOn>
     <ExtractDotNetSdkArchiveDependsOn Condition="'$(ArchiveExtension)' == '.zip'">$(ExtractDotNetSdkArchiveDependsOn);ExtractDotNetSdkZip</ExtractDotNetSdkArchiveDependsOn>
     <ExtractDotNetSdkArchiveDependsOn Condition="'$(ArchiveExtension)' == '.tar.gz'">$(ExtractDotNetSdkArchiveDependsOn);ExtractDotNetSdkTarball</ExtractDotNetSdkArchiveDependsOn>
   </PropertyGroup>
 
-  <Target Name="CreateDotNetInstallDir"
-          DependsOnTargets="$(CreateDotNetInstallDirDependsOn)">
+  <Target Name="SetupScenarioTestsArtifacts">
     <PropertyGroup>
-      <DotNetInstallTempDir>$(ScenarioTestsArtifactsDir)dotnet-sdk</DotNetInstallTempDir>
+      <DotNetInstallDir>$(ScenarioTestsArtifactsDir)dotnet-sdk</DotNetInstallDir>
+      <ScenarioTestsRunsDir>$(ScenarioTestsArtifactsDir)runs/</ScenarioTestsRunsDir>
     </PropertyGroup>
-    <MakeDir Directories="$(DotNetInstallTempDir)" />
+
+    <MakeDir Directories="$(DotNetInstallDir);$(ScenarioTestsRunsDir)" />
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)eng/local.NuGet.config"
+          DestinationFiles="$(ScenarioTestsArtifactsDir)/nuget.config" />
   </Target>
 
   <Target Name="ExtractDotNetSdkArchive"
           DependsOnTargets="$(ExtractDotNetSdkArchiveDependsOn)" />
 
   <Target Name="ExtractDotNetSdkTarball"
-          Outputs="@(DotNetSdkArtifactPath)">
-    <Exec Command="tar -xzf @(DotNetSdkArtifactPath) -C $(DotNetInstallTempDir)" />
+          Inputs="@(DotNetSdkArtifactPath)"
+          Outputs="$(DotNetInstallDir)">
+    <Exec Command="tar -xzf @(DotNetSdkArtifactPath) -C $(DotNetInstallDir)" />
   </Target>
 
   <Target Name="ExtractDotNetSdkZip"
-          Outputs="@(DotNetSdkArtifactPath)">
-    <Unzip SourceFiles="@(DotNetSdkArtifactPath)" DestinationFolder="$(DotNetInstallTempDir)" />
-  </Target>
-
-  <Target Name="CleanScenarioTestsArtifactsDir"
-          DependsOnTargets="GetDotNetSdkArtifactPath"
-          Outputs="@(DotNetSdkArtifactPath)">
-    <RemoveDir Directories="$(ScenarioTestsArtifactsDir)" />
+          Inputs="@(DotNetSdkArtifactPath)"
+          Outputs="$(DotNetInstallDir)">
+    <Unzip SourceFiles="@(DotNetSdkArtifactPath)" DestinationFolder="$(DotNetInstallDir)" />
   </Target>
 
   <Target Name="Test"
@@ -87,12 +86,13 @@
       <_CurrentDateTime>$([System.DateTime]::Now.ToString("yyyy-MM-dd_HH_mm_ss"))</_CurrentDateTime>
       <_TestXmlOutputPath>$(ArtifactsTestResultsDir)scenario-tests/$(_CurrentDateTime).xml</_TestXmlOutputPath>
 
-      <_ScenarioTestsArgs>--dotnet-root $(DotNetInstallTempDir) --xml $(_TestXmlOutputPath) --test-root $(ScenarioTestsArtifactsDir) --no-cleanup</_ScenarioTestsArgs>
+      <_ScenarioTestsArgs>--dotnet-root $(DotNetInstallDir) --xml $(_TestXmlOutputPath) --test-root $(ScenarioTestsRunsDir)$(_CurrentDateTime) --no-cleanup</_ScenarioTestsArgs>
       <_ScenarioTestsArgs Condition="'$(DotNetBuildSourceOnly)' == 'true'">$(_ScenarioTestsArgs) --no-traits Category=MultiTFM</_ScenarioTestsArgs>
     </PropertyGroup>
 
     <ItemGroup>
       <!-- <_ScenarioTestsEnvVars Include="NUGET_PACKAGES=$(ArtifactsShippingPackagesDir)" /> -->
+      <_ScenarioTestsEnvVars Include="LOCAL_FEED_PATH=$(ArtifactsShippingPackagesDir)" />
 
       <!-- The projects that are created by the scenario tests will be built and derive the BaseIntermediateOutputPath
            defined in Directory.Build.props. This overrides the root of that dir so that the output of those builds get
@@ -101,7 +101,7 @@
       <_ScenarioTestsEnvVars Include="ArtifactsDir=$(ScenarioTestsArtifactsDir)" />
     </ItemGroup>
 
-    <Exec Command="NUGET_PACKAGES=$(ArtifactsShippingPackagesDir) $(DotnetTool) $(_ScenarioTestsDllPath) $(_ScenarioTestsArgs)"
+    <Exec Command="$(DotnetTool) $(_ScenarioTestsDllPath) $(_ScenarioTestsArgs)"
           EnvironmentVariables="@(_ScenarioTestsEnvVars)" />
   </Target>
 

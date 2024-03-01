@@ -7,7 +7,12 @@
     <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
 
     <ScenarioTestsArtifactsDir>$(ArtifactsDir)scenario-tests/</ScenarioTestsArtifactsDir>
+    <ScenarioTestsDotNetInstallDir>$(ScenarioTestsArtifactsDir)dotnet-sdk</ScenarioTestsDotNetInstallDir>
+    <ScenarioTestsRunsDir>$(ScenarioTestsArtifactsDir)runs/</ScenarioTestsRunsDir>
+    <ScenarioTestsLocalFeedDir>$(ScenarioTestsArtifactsDir)feed/</ScenarioTestsLocalFeedDir>
   </PropertyGroup>
+
+  <UsingTask AssemblyFile="$(XPlatSourceBuildTasksAssembly)" TaskName="AddSourceToNuGetConfig" />
 
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
 
@@ -53,14 +58,35 @@
 
   <Target Name="SetupScenarioTestsArtifacts">
     <PropertyGroup>
-      <DotNetInstallDir>$(ScenarioTestsArtifactsDir)dotnet-sdk</DotNetInstallDir>
-      <ScenarioTestsRunsDir>$(ScenarioTestsArtifactsDir)runs/</ScenarioTestsRunsDir>
+      <_ScenarioTestsNuGetPath>$(ScenarioTestsArtifactsDir)/NuGet.config</_ScenarioTestsNuGetPath>
     </PropertyGroup>
 
-    <MakeDir Directories="$(DotNetInstallDir);$(ScenarioTestsRunsDir)" />
-    <Copy SourceFiles="$(MSBuildThisFileDirectory)eng/local.NuGet.config"
-          DestinationFiles="$(ScenarioTestsArtifactsDir)/nuget.config" />
-    <Touch Files="$(ScenarioTestsArtifactsDir)Directory.Build.props;$(ScenarioTestsArtifactsDir)Directory.Build.targets" AlwaysCreate="true" />
+    <MakeDir Directories="$(ScenarioTestsDotNetInstallDir);$(ScenarioTestsRunsDir);$(ScenarioTestsLocalFeedDir)" />
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)src/installer/NuGet.config"
+          DestinationFiles="$(_ScenarioTestsNuGetPath)" />
+
+    <!-- Combine all packages into a single directory with symlinks so that we can have a single feed that points to them all. -->
+    <ItemGroup>
+      <_ArtifactsPackageToBundle Include="$(ArtifactsShippingPackagesDir)**;
+                                          $(ArtifactsNonShippingPackagesDir)**"
+                                 Condition="!$([System.String]::Copy('%(Identity)').EndsWith('.symbols.nupkg'))" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_ArtifactsPackageToBundle)"
+          DestinationFolder="$(ScenarioTestsLocalFeedDir)"
+          UseSymbolicLinksIfPossible="true" />
+
+    <AddSourceToNuGetConfig NuGetConfigFile="$(_ScenarioTestsNuGetPath)"
+                            SourceName="local-feed"
+                            SourcePath="$(ScenarioTestsLocalFeedDir)" />
+
+    <ItemGroup>
+      <_DirectoryProjFiles Include="$(ScenarioTestsArtifactsDir)Directory.Build.props" />
+      <_DirectoryProjFiles Include="$(ScenarioTestsArtifactsDir)Directory.Build.targets" />
+    </ItemGroup>
+    <!-- TODO: Still needed? -->
+    <WriteLinesToFile File="%(_DirectoryProjFiles.FullPath)"
+                      Lines="&lt;Project /&gt;"
+                      Overwrite="true" />
   </Target>
 
   <Target Name="ExtractDotNetSdkArchive"
@@ -68,14 +94,14 @@
 
   <Target Name="ExtractDotNetSdkTarball"
           Inputs="@(DotNetSdkArtifactPath)"
-          Outputs="$(DotNetInstallDir)">
-    <Exec Command="tar -xzf @(DotNetSdkArtifactPath) -C $(DotNetInstallDir)" />
+          Outputs="$(ScenarioTestsDotNetInstallDir)">
+    <Exec Command="tar -xzf @(DotNetSdkArtifactPath) -C $(ScenarioTestsDotNetInstallDir)" />
   </Target>
 
   <Target Name="ExtractDotNetSdkZip"
           Inputs="@(DotNetSdkArtifactPath)"
-          Outputs="$(DotNetInstallDir)">
-    <Unzip SourceFiles="@(DotNetSdkArtifactPath)" DestinationFolder="$(DotNetInstallDir)" />
+          Outputs="$(ScenarioTestsDotNetInstallDir)">
+    <Unzip SourceFiles="@(DotNetSdkArtifactPath)" DestinationFolder="$(ScenarioTestsDotNetInstallDir)" />
   </Target>
 
   <Target Name="Test"
@@ -87,13 +113,17 @@
       <_CurrentDateTime>$([System.DateTime]::Now.ToString("yyyy-MM-dd_HH_mm_ss"))</_CurrentDateTime>
       <_TestXmlOutputPath>$(ArtifactsTestResultsDir)scenario-tests/$(_CurrentDateTime).xml</_TestXmlOutputPath>
 
-      <_ScenarioTestsArgs>--dotnet-root $(DotNetInstallDir) --xml $(_TestXmlOutputPath) --target-rid $(TargetRid) --test-root $(ScenarioTestsRunsDir)$(_CurrentDateTime) --no-cleanup</_ScenarioTestsArgs>
+      <_ScenarioTestsArgs>--dotnet-root $(ScenarioTestsDotNetInstallDir) --xml $(_TestXmlOutputPath) --target-rid $(TargetRid) --test-root $(ScenarioTestsRunsDir)$(_CurrentDateTime) --no-cleanup</_ScenarioTestsArgs>
       <_ScenarioTestsArgs Condition="'$(DotNetBuildSourceOnly)' == 'true'">$(_ScenarioTestsArgs) --no-traits Category=MultiTFM</_ScenarioTestsArgs>
     </PropertyGroup>
 
     <ItemGroup>
-      <!-- <_ScenarioTestsEnvVars Include="NUGET_PACKAGES=$(ArtifactsShippingPackagesDir)" /> -->
       <_ScenarioTestsEnvVars Include="LOCAL_FEED_PATH=$(ArtifactsShippingPackagesDir)" />
+
+      <!-- Need to clear out this value so it doesn't inherit the ambient value in the current build which is tied to
+           the VMR's local .NET install (i.e. ".dotnet" directory). That will pollute the targets which end up getting
+           used for the SDK that we want to test. -->
+      <_ScenarioTestsEnvVars Include="MSBuildSDKsPath=" />
 
       <!-- The projects that are created by the scenario tests will be built and derive the BaseIntermediateOutputPath
            defined in Directory.Build.props. This overrides the root of that dir so that the output of those builds get

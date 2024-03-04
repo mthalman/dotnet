@@ -197,15 +197,8 @@ if [[ "$ci" == true ]]; then
   if [[ "$exclude_ci_binary_log" == false ]]; then
     binary_log=true
   fi
-fi
 
-if [ "$test" == "true" ]; then
-  export NUGET_PACKAGES=$NUGET_PACKAGES/smoke-tests
-  testTargets="Test"
-  if [ "$test_no_build" != "true" ]; then
-    testTargets="Build;$testTargets"
-  fi
-  properties="$properties /p:DotNetIncludeScenarioTests=true /t:$testTargets"
+  properties="$properties /p:ContinuousIntegrationBuild=true"
 fi
 
 . "$scriptroot/eng/common/tools.sh"
@@ -227,10 +220,6 @@ function Build {
 
   else
 
-    if [ "$ci" == "true" ]; then
-      properties="$properties /p:ContinuousIntegrationBuild=true"
-    fi
-
     "$CLI_ROOT/dotnet" build-server shutdown
 
     "$CLI_ROOT/dotnet" msbuild "$scriptroot/eng/tools/init-build.proj" -bl:"$scriptroot/artifacts/log/$configuration/BuildMSBuildSdkResolver.binlog" -flp:LogFile="$scriptroot/artifacts/log/$configuration/BuildMSBuildSdkResolver.log" /t:ExtractToolPackage,BuildMSBuildSdkResolver $properties
@@ -247,7 +236,11 @@ function Build {
 }
 
 function Test {
-  "$CLI_ROOT/dotnet" msbuild "$scriptroot/build.proj" -bl:"$scriptroot/artifacts/log/$configuration/BuildTests.binlog" -flp:"LogFile=$scriptroot/artifacts/log/$configuration/BuildTests.log" -clp:v=m $properties
+  if [[ "$sourceOnly" != "true" ]]; then
+    NUGET_PACKAGES=$NUGET_PACKAGES/smoke-tests "$CLI_ROOT/dotnet" msbuild "$scriptroot/build.proj" -t:RunSmokeTests -bl:"$scriptroot/artifacts/log/$configuration/SourceBuildSmokeTests.binlog" -flp:"LogFile=$scriptroot/artifacts/log/$configuration/SourceBuildSmokeTests.log" -clp:v=m $properties
+  fi
+  
+  "$CLI_ROOT/dotnet" msbuild "$scriptroot/build.proj" -t:Test -bl:"$scriptroot/artifacts/log/$configuration/ScenarioTests.binlog" -flp:"LogFile=$scriptroot/artifacts/log/$configuration/ScenarioTests.log" -clp:v=m $properties
 }
 
 if [[ "$clean" == true ]]; then

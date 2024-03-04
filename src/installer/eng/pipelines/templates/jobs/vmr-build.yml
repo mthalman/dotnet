@@ -317,7 +317,7 @@ jobs:
           extraBuildProperties="$extraBuildProperties ${{ parameters.extraProperties }}"
         fi
 
-        buildArgs="$(additionalBuildArgs) $customBuildArgs $extraBuildProperties --test"
+        buildArgs="$(additionalBuildArgs) $customBuildArgs $extraBuildProperties"
 
         # Only use Docker when a container is specified
         if [[ -n "${{ parameters.container }}" ]]; then
@@ -346,20 +346,33 @@ jobs:
         fi
       displayName: Build
 
-  - ${{ if eq(parameters.buildSourceOnly, 'True') }}:
-    - script: |
-        set -ex
+  - script: |
+      set -ex
 
+      buildArgs="--test $(additionalBuildArgs)"
+
+      if [[ -n "${{ parameters.container }}" ]]; then
         dockerVolumeArgs="-v $(sourcesPath):/vmr"
-        dockerEnvArgs="-e SMOKE_TESTS_EXCLUDE_OMNISHARP=${{ parameters.excludeOmniSharpTests }} -e SMOKE_TESTS_WARN_SDK_CONTENT_DIFFS=true -e SMOKE_TESTS_RUNNING_IN_CI=true"
-        poisonArg=''
+        dockerEnvArgs=""
+        
+        if [[ '${{ parameters.buildSourceOnly }}' == 'True' ]]; then
+          dockerEnvArgs="-e SMOKE_TESTS_EXCLUDE_OMNISHARP=${{ parameters.excludeOmniSharpTests }} -e SMOKE_TESTS_WARN_SDK_CONTENT_DIFFS=true -e SMOKE_TESTS_RUNNING_IN_CI=true"
 
-        if [[ '${{ parameters.enablePoison }}' == 'True' ]]; then
-          poisonArg='--poison'
+          poisonArg=""
+
+          if [[ '${{ parameters.enablePoison }}' == 'True' ]]; then
+            poisonArg="--poison"
+          fi
+
+          buildArgs="$buildArgs --source-only $poisonArg /p:SmokeTestConsoleVerbosity=detailed"
         fi
 
-        docker run --rm $dockerVolumeArgs -w /vmr $dockerEnvArgs ${{ parameters.container }} ./build.sh --source-only $poisonArg --test $(additionalBuildArgs) /p:SmokeTestConsoleVerbosity=detailed
-      displayName: Run Source Build Smoke Tests
+        docker run --rm $dockerVolumeArgs -w /vmr $dockerEnvArgs ${{ parameters.container }} ./build.sh $buildArgs
+      else
+        cd $(sourcesPath)
+        ./build.sh $buildArgs
+      fi
+    displayName: Run Tests
 
   - ${{ if eq(parameters.targetOS, 'windows') }}:
 
@@ -436,7 +449,7 @@ jobs:
   # Only upload test results if enabled
   - ${{ if eq(parameters.buildSourceOnly, 'True') }}:
     - task: PublishTestResults@2
-      displayName: Publish Test Results
+      displayName: Publish Source Build Smoke Test Results
       condition: succeededOrFailed()
       continueOnError: true
       inputs:
@@ -446,6 +459,18 @@ jobs:
         mergeTestResults: true
         publishRunAttachments: true
         testRunTitle: SourceBuild_SmokeTests_$(Agent.JobName)
+
+  - task: PublishTestResults@2
+    displayName: Publish Scenario Test Results
+    condition: succeededOrFailed()
+    continueOnError: true
+    inputs:
+      testRunner: xUnit
+      testResultsFiles: 'artifacts/TestResults/**/*.xml'
+      searchFolder: $(sourcesPath)
+      mergeTestResults: true
+      publishRunAttachments: true
+      testRunTitle: ScenarioTests_$(Agent.JobName)
 
   - task: CopyFiles@2
     inputs:

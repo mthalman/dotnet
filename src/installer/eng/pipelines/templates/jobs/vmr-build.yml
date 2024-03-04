@@ -349,7 +349,7 @@ jobs:
   - script: |
       set -ex
 
-      buildArgs="--test $(additionalBuildArgs)"
+      buildArgs="--test --testnobuild $(additionalBuildArgs)"
 
       if [[ -n "${{ parameters.container }}" ]]; then
         dockerVolumeArgs="-v $(sourcesPath):/vmr"

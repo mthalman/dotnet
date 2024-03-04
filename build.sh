@@ -236,8 +236,8 @@ function Build {
 }
 
 function Test {
-  if [[ "$sourceOnly" != "true" ]]; then
-    NUGET_PACKAGES=$NUGET_PACKAGES/smoke-tests "$CLI_ROOT/dotnet" msbuild "$scriptroot/build.proj" -t:RunSmokeTests -bl:"$scriptroot/artifacts/log/$configuration/SourceBuildSmokeTests.binlog" -flp:"LogFile=$scriptroot/artifacts/log/$configuration/SourceBuildSmokeTests.log" -clp:v=m $properties
+  if [[ "$sourceOnly" == "true" ]]; then
+    NUGET_PACKAGES=$NUGET_PACKAGES/smoke-tests "$CLI_ROOT/dotnet" msbuild "$scriptroot/build.proj" -t:RunSmokeTest -bl:"$scriptroot/artifacts/log/$configuration/SourceBuildSmokeTests.binlog" -flp:"LogFile=$scriptroot/artifacts/log/$configuration/SourceBuildSmokeTests.log" -clp:v=m $properties
   fi
   
   "$CLI_ROOT/dotnet" msbuild "$scriptroot/build.proj" -t:Test -bl:"$scriptroot/artifacts/log/$configuration/ScenarioTests.binlog" -flp:"LogFile=$scriptroot/artifacts/log/$configuration/ScenarioTests.log" -clp:v=m $properties

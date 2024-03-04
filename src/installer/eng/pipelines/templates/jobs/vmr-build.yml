@@ -67,10 +67,6 @@ parameters:
   type: boolean
   default: true
 
-- name: runTests
-  type: boolean
-  default: false
-
 # Freeform field for extra values to pass to build.sh for special build modes
 - name: extraProperties
   type: string
@@ -180,7 +176,7 @@ jobs:
       displayName: Export VMR sources
       workingDirectory: $(Build.StagingDirectory)
 
-  - ${{ if and(ne(variables['System.TeamProject'], 'public'), eq(parameters.runTests, 'True')) }}:
+  - ${{ if and(ne(variables['System.TeamProject'], 'public'), eq(parameters.buildSourceOnly, 'True')) }}:
     - script: cp "$(sourcesPath)/src/installer/NuGet.config" "$(sourcesPath)/test/Microsoft.DotNet.SourceBuild.SmokeTests/assets/online.NuGet.Config"
       displayName: Copy Test NuGet Config
 
@@ -321,7 +317,7 @@ jobs:
           extraBuildProperties="$extraBuildProperties ${{ parameters.extraProperties }}"
         fi
 
-        buildArgs="$(additionalBuildArgs) $customBuildArgs $extraBuildProperties"
+        buildArgs="$(additionalBuildArgs) $customBuildArgs $extraBuildProperties --test"
 
         # Only use Docker when a container is specified
         if [[ -n "${{ parameters.container }}" ]]; then
@@ -350,8 +346,7 @@ jobs:
         fi
       displayName: Build
 
-  # Only run tests if enabled
-  - ${{ if eq(parameters.runTests, 'True') }}:
+  - ${{ if eq(parameters.buildSourceOnly, 'True') }}:
     - script: |
         set -ex
 
@@ -364,7 +359,7 @@ jobs:
         fi
 
         docker run --rm $dockerVolumeArgs -w /vmr $dockerEnvArgs ${{ parameters.container }} ./build.sh --source-only $poisonArg --test $(additionalBuildArgs) /p:SmokeTestConsoleVerbosity=detailed
-      displayName: Run Tests
+      displayName: Run Source Build Smoke Tests
 
   - ${{ if eq(parameters.targetOS, 'windows') }}:
 
@@ -439,7 +434,7 @@ jobs:
       condition: always()
 
   # Only upload test results if enabled
-  - ${{ if eq(parameters.runTests, 'True') }}:
+  - ${{ if eq(parameters.buildSourceOnly, 'True') }}:
     - task: PublishTestResults@2
       displayName: Publish Test Results
       condition: succeededOrFailed()

@@ -40,7 +40,7 @@ usage()
   echo "  --excludeCIBinarylog            Don't output binary log (short: -nobl)"
   echo "  --prepareMachine                Prepare machine for CI run, clean up processes after build"
   echo "  --use-mono-runtime              Output uses the mono runtime"
-  echo "  --testnobuild                   Skip building tests when invoked --test"
+  echo "  --testnobuild                   Skip building tests when invoked with --test"
   echo ""
   echo "Command line arguments not listed above are passed thru to msbuild."
   echo "Arguments can also be passed in with a single hyphen."
@@ -225,8 +225,6 @@ function Build {
       /p:Configuration=$configuration \
       $properties
 
-    ExitWithExitCode 0
-
   else
 
     if [ "$ci" == "true" ]; then
@@ -235,21 +233,21 @@ function Build {
 
     "$CLI_ROOT/dotnet" build-server shutdown
 
-    if [ "$test" == "true" ]; then
-      "$CLI_ROOT/dotnet" msbuild "$scriptroot/build.proj" -bl:"$scriptroot/artifacts/log/$configuration/BuildTests.binlog" -flp:"LogFile=$scriptroot/artifacts/log/$configuration/BuildTests.log" -clp:v=m $properties
-    else
-      "$CLI_ROOT/dotnet" msbuild "$scriptroot/eng/tools/init-build.proj" -bl:"$scriptroot/artifacts/log/$configuration/BuildMSBuildSdkResolver.binlog" -flp:LogFile="$scriptroot/artifacts/log/$configuration/BuildMSBuildSdkResolver.log" /t:ExtractToolPackage,BuildMSBuildSdkResolver $properties
+    "$CLI_ROOT/dotnet" msbuild "$scriptroot/eng/tools/init-build.proj" -bl:"$scriptroot/artifacts/log/$configuration/BuildMSBuildSdkResolver.binlog" -flp:LogFile="$scriptroot/artifacts/log/$configuration/BuildMSBuildSdkResolver.log" /t:ExtractToolPackage,BuildMSBuildSdkResolver $properties
 
-      # kill off the MSBuild server so that on future invocations we pick up our custom SDK Resolver
-      "$CLI_ROOT/dotnet" build-server shutdown
+    # kill off the MSBuild server so that on future invocations we pick up our custom SDK Resolver
+    "$CLI_ROOT/dotnet" build-server shutdown
 
-      # Point MSBuild to the custom SDK resolvers folder, so it will pick up our custom SDK Resolver
-      export MSBUILDADDITIONALSDKRESOLVERSFOLDER="$scriptroot/artifacts/toolset/VSSdkResolvers/"
+    # Point MSBuild to the custom SDK resolvers folder, so it will pick up our custom SDK Resolver
+    export MSBUILDADDITIONALSDKRESOLVERSFOLDER="$scriptroot/artifacts/toolset/VSSdkResolvers/"
 
-      "$CLI_ROOT/dotnet" msbuild "$scriptroot/build.proj" -bl:"$scriptroot/artifacts/log/$configuration/Build.binlog" -flp:"LogFile=$scriptroot/artifacts/log/$configuration/Build.log" $properties
-    fi
+    "$CLI_ROOT/dotnet" msbuild "$scriptroot/build.proj" -bl:"$scriptroot/artifacts/log/$configuration/Build.binlog" -flp:"LogFile=$scriptroot/artifacts/log/$configuration/Build.log" $properties
 
   fi
+}
+
+function Test {
+  "$CLI_ROOT/dotnet" msbuild "$scriptroot/build.proj" -bl:"$scriptroot/artifacts/log/$configuration/BuildTests.binlog" -flp:"LogFile=$scriptroot/artifacts/log/$configuration/BuildTests.log" -clp:v=m $properties
 }
 
 if [[ "$clean" == true ]]; then
@@ -380,4 +378,11 @@ if [[ "$sourceOnly" == "true" ]]; then
   echo "Found bootstrap SDK $SDK_VERSION, bootstrap Arcade $ARCADE_BOOTSTRAP_VERSION"
 fi
 
-Build
+# Run the build as long as we're not only running tests
+if [[ !("$test" == "true" && "$test_no_build" == "true") ]]; then
+  Build
+fi
+
+if [ "$test" == "true" ]; then
+  Test
+fi

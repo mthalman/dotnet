@@ -12,7 +12,7 @@
 
   <ItemGroup>
     <RepositoryReference Include="installer" />
-    <RepositoryReference Include="scenario-tests" Condition="'$(IncludeScenarioTests)' == 'true'" />
+    <RepositoryReference Include="scenario-tests" />
   </ItemGroup>
 
 </Project>

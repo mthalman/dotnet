@@ -203,46 +203,56 @@ fi
 
 . "$scriptroot/eng/common/tools.sh"
 
-if [[ "$sourceOnly" != "true" ]]; then
-    InitializeToolset
-fi
-
 function Build {
-  if [[ "$sourceOnly" != "true" ]]; then
+  if [[ "$sourceOnly" == "true" ]]; then
+    "$CLI_ROOT/dotnet" build-server shutdown
 
-    local bl=""
-    if [[ "$binary_log" == true ]]; then
-      bl="/bl:\"$log_dir/Build.binlog\""
-    fi
-
-    MSBuild "$scriptroot/build.proj" \
-      $bl \
-      /p:Configuration=$configuration \
-      $properties
-
-  else
-
-    "$DOTNET_INSTALL_DIR/dotnet" build-server shutdown
-
-    "$DOTNET_INSTALL_DIR/dotnet" msbuild "$scriptroot/eng/tools/init-build.proj" -bl:"$scriptroot/artifacts/log/$configuration/BuildMSBuildSdkResolver.binlog" -flp:LogFile="$scriptroot/artifacts/log/$configuration/BuildMSBuildSdkResolver.log" /t:ExtractToolPackage,BuildMSBuildSdkResolver $properties
+    InvokeMsBuild "$scriptroot/eng/tools/init-build.proj" "ExtractToolPackage,BuildMSBuildSdkResolver" "BuildMSBuildSdkResolver"
 
     # kill off the MSBuild server so that on future invocations we pick up our custom SDK Resolver
-    "$DOTNET_INSTALL_DIR/dotnet" build-server shutdown
+    "$CLI_ROOT/dotnet" build-server shutdown
 
     # Point MSBuild to the custom SDK resolvers folder, so it will pick up our custom SDK Resolver
     export MSBUILDADDITIONALSDKRESOLVERSFOLDER="$scriptroot/artifacts/toolset/VSSdkResolvers/"
-
-    "$DOTNET_INSTALL_DIR/dotnet" msbuild "$scriptroot/build.proj" -bl:"$scriptroot/artifacts/log/$configuration/Build.binlog" -flp:"LogFile=$scriptroot/artifacts/log/$configuration/Build.log" $properties
-
+    
   fi
+
+  InvokeMsBuild "$scriptroot/build.proj" "Build" "Build"
 }
 
 function Test {
   if [[ "$sourceOnly" == "true" ]]; then
-    NUGET_PACKAGES=$NUGET_PACKAGES/smoke-tests "$DOTNET_INSTALL_DIR/dotnet" msbuild "$scriptroot/build.proj" -t:RunSmokeTest -bl:"$scriptroot/artifacts/log/$configuration/SourceBuildSmokeTests.binlog" -flp:"LogFile=$scriptroot/artifacts/log/$configuration/SourceBuildSmokeTests.log" -clp:v=m $properties
+    NUGET_PACKAGES=$NUGET_PACKAGES/smoke-tests InvokeMsBuild "$scriptroot/build.proj" "RunSmokeTest" "SourceBuildSmokeTests"
   fi
   
-  "$DOTNET_INSTALL_DIR/dotnet" msbuild "$scriptroot/build.proj" -t:Test -bl:"$scriptroot/artifacts/log/$configuration/ScenarioTests.binlog" -flp:"LogFile=$scriptroot/artifacts/log/$configuration/ScenarioTests.log" -clp:v=m $properties
+  InvokeMsBuild "$scriptroot/build.proj" "Test" "ScenarioTests"
+}
+
+function InvokeMsBuild {
+  local projectPath="$1"
+  local target="$2"
+  local logName="$3"
+
+  if [[ "$sourceOnly" == "true" ]]; then
+    "$CLI_ROOT/dotnet" msbuild "$projectPath" \
+      -t:$target \
+      -bl:"$scriptroot/artifacts/log/$configuration/$logName.binlog" \
+      -flp:LogFile="$scriptroot/artifacts/log/$configuration/$logName.log" \
+      -clp:v=m \
+      $properties
+  else
+    InitializeToolset
+
+    local bl=""
+    if [[ "$binary_log" == true ]]; then
+      bl="/bl:\"$log_dir/$logName.binlog\""
+    fi
+    MSBuild "$projectPath" \
+      -t:$target \
+      $bl \
+      /p:Configuration=$configuration \
+      $properties
+  fi
 }
 
 if [[ "$clean" == true ]]; then
@@ -322,15 +332,16 @@ if [[ "$sourceOnly" == "true" ]]; then
   # Allow a custom SDK directory to be specified
   if [ -d "$CUSTOM_SDK_DIR" ]; then
     export SDK_VERSION=$("$CUSTOM_SDK_DIR/dotnet" --version)
-    export DOTNET_INSTALL_DIR="$CUSTOM_SDK_DIR"
-    export _InitializeDotNetCli="$DOTNET_INSTALL_DIR/dotnet"
-    echo "Using custom bootstrap SDK from '$DOTNET_INSTALL_DIR', version '$SDK_VERSION'"
+    export CLI_ROOT="$CUSTOM_SDK_DIR"
+    export _InitializeDotNetCli="$CLI_ROOT/dotnet"
+    export DOTNET_INSTALL_DIR="$CLI_ROOT"
+    echo "Using custom bootstrap SDK from '$CLI_ROOT', version '$SDK_VERSION'"
   else
     sdkLine=$(grep -m 1 'dotnet' "$scriptroot/global.json")
     sdkPattern="\"dotnet\" *: *\"(.*)\""
     if [[ $sdkLine =~ $sdkPattern ]]; then
       export SDK_VERSION=${BASH_REMATCH[1]}
-      export DOTNET_INSTALL_DIR="$scriptroot/.dotnet"
+      export CLI_ROOT="$scriptroot/.dotnet"
     fi
   fi
 

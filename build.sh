@@ -203,10 +203,12 @@ fi
 
 . "$scriptroot/eng/common/tools.sh"
 
+if [[ "$sourceOnly" != "true" ]]; then
+    InitializeToolset
+fi
+
 function Build {
   if [[ "$sourceOnly" != "true" ]]; then
-
-    InitializeToolset
 
     local bl=""
     if [[ "$binary_log" == true ]]; then

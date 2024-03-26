@@ -236,7 +236,9 @@ jobs:
     - script: |
         call $(sourcesPath)\build.cmd -ci -cleanWhileBuilding -prepareMachine ${{ parameters.extraProperties }}
       displayName: Build
-
+    - script: |
+        call $(sourcesPath)\build.cmd -test -testnobuild
+      displayName: Run Tests
   - ${{ else }}:
     - ${{ if eq(parameters.buildSourceOnly, 'true') }}:
       - script: |
@@ -346,33 +348,33 @@ jobs:
         fi
       displayName: Build
 
-  - script: |
-      set -ex
+    - script: |
+        set -ex
 
-      buildArgs="--test --testnobuild $(additionalBuildArgs)"
+        buildArgs="--test --testnobuild $(additionalBuildArgs)"
 
-      if [[ -n "${{ parameters.container }}" ]]; then
-        dockerVolumeArgs="-v $(sourcesPath):/vmr"
-        dockerEnvArgs=""
-        
-        if [[ '${{ parameters.buildSourceOnly }}' == 'True' ]]; then
-          dockerEnvArgs="-e SMOKE_TESTS_EXCLUDE_OMNISHARP=${{ parameters.excludeOmniSharpTests }} -e SMOKE_TESTS_WARN_SDK_CONTENT_DIFFS=true -e SMOKE_TESTS_RUNNING_IN_CI=true"
+        if [[ -n "${{ parameters.container }}" ]]; then
+          dockerVolumeArgs="-v $(sourcesPath):/vmr"
+          dockerEnvArgs=""
+          
+          if [[ '${{ parameters.buildSourceOnly }}' == 'True' ]]; then
+            dockerEnvArgs="-e SMOKE_TESTS_EXCLUDE_OMNISHARP=${{ parameters.excludeOmniSharpTests }} -e SMOKE_TESTS_WARN_SDK_CONTENT_DIFFS=true -e SMOKE_TESTS_RUNNING_IN_CI=true"
 
-          poisonArg=""
+            poisonArg=""
 
-          if [[ '${{ parameters.enablePoison }}' == 'True' ]]; then
-            poisonArg="--poison"
+            if [[ '${{ parameters.enablePoison }}' == 'True' ]]; then
+              poisonArg="--poison"
+            fi
+
+            buildArgs="$buildArgs --source-only $poisonArg /p:SmokeTestConsoleVerbosity=detailed"
           fi
 
-          buildArgs="$buildArgs --source-only $poisonArg /p:SmokeTestConsoleVerbosity=detailed"
+          docker run --rm $dockerVolumeArgs -w /vmr $dockerEnvArgs ${{ parameters.container }} ./build.sh $buildArgs
+        else
+          cd $(sourcesPath)
+          ./build.sh $buildArgs
         fi
-
-        docker run --rm $dockerVolumeArgs -w /vmr $dockerEnvArgs ${{ parameters.container }} ./build.sh $buildArgs
-      else
-        cd $(sourcesPath)
-        ./build.sh $buildArgs
-      fi
-    displayName: Run Tests
+      displayName: Run Tests
 
   - ${{ if eq(parameters.targetOS, 'windows') }}:
 

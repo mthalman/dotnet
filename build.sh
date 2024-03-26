@@ -19,7 +19,7 @@ usage()
   echo "  --clean                         Clean the solution"
   echo "  --help                          Print help and exit (short: -h)"
   echo "  --test                          Run scenario tests (short: -t)"
-  echo "                                  Use in conjunction with --testnobuild to only run tests"
+  echo "                                  Use in conjunction with --testnobuild to run tests without building"
   echo ""
 
   echo "Source-only settings:"
@@ -34,13 +34,13 @@ usage()
   echo ""
 
   echo "Advanced settings:"
-  echo "  --build-tests                   Build repository tests. May not be supported with --source-only"
+  echo "  --build-repo-tests              Build repository tests. May not be supported with --source-only"
   echo "  --ci                            Set when running on CI server"
   echo "  --clean-while-building          Cleans each repo after building (reduces disk space usage, short: -cwb)"
   echo "  --excludeCIBinarylog            Don't output binary log (short: -nobl)"
   echo "  --prepareMachine                Prepare machine for CI run, clean up processes after build"
   echo "  --use-mono-runtime              Output uses the mono runtime"
-  echo "  --testnobuild                   Skip building tests when invoked with --test"
+  echo "  --testnobuild                   Run scenario tests without building when invoked with --test"
   echo ""
   echo "Command line arguments not listed above are passed thru to msbuild."
   echo "Arguments can also be passed in with a single hyphen."
@@ -163,7 +163,7 @@ while [[ $# > 0 ]]; do
       ;;
 
     # Advanced settings
-    -build-tests)
+    -build-repo-tests)
       properties="$properties /p:DotNetBuildTests=true"
       ;;
     -ci)

@@ -67,6 +67,10 @@ parameters:
   type: boolean
   default: true
 
+- name: runTests
+  type: boolean
+  default: false
+
 # Freeform field for extra values to pass to build.sh for special build modes
 - name: extraProperties
   type: string
@@ -176,7 +180,7 @@ jobs:
       displayName: Export VMR sources
       workingDirectory: $(Build.StagingDirectory)
 
-  - ${{ if and(ne(variables['System.TeamProject'], 'public'), eq(parameters.buildSourceOnly, 'True')) }}:
+  - ${{ if and(ne(variables['System.TeamProject'], 'public'), eq(parameters.buildSourceOnly, 'True'), eq(parameters.runTests, 'True'))) }}:
     - script: cp "$(sourcesPath)/src/installer/NuGet.config" "$(sourcesPath)/test/Microsoft.DotNet.SourceBuild.SmokeTests/assets/online.NuGet.Config"
       displayName: Copy Test NuGet Config
 
@@ -236,9 +240,11 @@ jobs:
     - script: |
         call $(sourcesPath)\build.cmd -ci -cleanWhileBuilding -prepareMachine ${{ parameters.extraProperties }}
       displayName: Build
-    - script: |
-        call $(sourcesPath)\build.cmd -test -testnobuild
-      displayName: Run Tests
+    
+    - ${{ if eq(parameters.runTests, 'True') }}:
+      - script: |
+          call $(sourcesPath)\build.cmd -test -testnobuild
+        displayName: Run Tests
   - ${{ else }}:
     - ${{ if eq(parameters.buildSourceOnly, 'true') }}:
       - script: |
@@ -348,33 +354,35 @@ jobs:
         fi
       displayName: Build
 
-    - script: |
-        set -ex
+    # Only run tests if enabled
+    - ${{ if eq(parameters.runTests, 'True') }}:
+      - script: |
+          set -ex
 
-        buildArgs="--test --testnobuild $(additionalBuildArgs)"
+          buildArgs="--test --testnobuild $(additionalBuildArgs)"
 
-        if [[ -n "${{ parameters.container }}" ]]; then
-          dockerVolumeArgs="-v $(sourcesPath):/vmr"
-          dockerEnvArgs=""
-          
-          if [[ '${{ parameters.buildSourceOnly }}' == 'True' ]]; then
-            dockerEnvArgs="-e SMOKE_TESTS_EXCLUDE_OMNISHARP=${{ parameters.excludeOmniSharpTests }} -e SMOKE_TESTS_WARN_SDK_CONTENT_DIFFS=true -e SMOKE_TESTS_RUNNING_IN_CI=true"
+          if [[ -n "${{ parameters.container }}" ]]; then
+            dockerVolumeArgs="-v $(sourcesPath):/vmr"
+            dockerEnvArgs=""
+            
+            if [[ '${{ parameters.buildSourceOnly }}' == 'True' ]]; then
+              dockerEnvArgs="-e SMOKE_TESTS_EXCLUDE_OMNISHARP=${{ parameters.excludeOmniSharpTests }} -e SMOKE_TESTS_WARN_SDK_CONTENT_DIFFS=true -e SMOKE_TESTS_RUNNING_IN_CI=true"
 
-            poisonArg=""
+              poisonArg=""
 
-            if [[ '${{ parameters.enablePoison }}' == 'True' ]]; then
-              poisonArg="--poison"
+              if [[ '${{ parameters.enablePoison }}' == 'True' ]]; then
+                poisonArg="--poison"
+              fi
+
+              buildArgs="$buildArgs --source-only $poisonArg /p:SmokeTestConsoleVerbosity=detailed"
             fi
 
-            buildArgs="$buildArgs --source-only $poisonArg /p:SmokeTestConsoleVerbosity=detailed"
+            docker run --rm $dockerVolumeArgs -w /vmr $dockerEnvArgs ${{ parameters.container }} ./build.sh $buildArgs
+          else
+            cd $(sourcesPath)
+            ./build.sh $buildArgs
           fi
-
-          docker run --rm $dockerVolumeArgs -w /vmr $dockerEnvArgs ${{ parameters.container }} ./build.sh $buildArgs
-        else
-          cd $(sourcesPath)
-          ./build.sh $buildArgs
-        fi
-      displayName: Run Tests
+        displayName: Run Tests
 
   - ${{ if eq(parameters.targetOS, 'windows') }}:
 
@@ -449,30 +457,31 @@ jobs:
       condition: always()
 
   # Only upload test results if enabled
-  - ${{ if eq(parameters.buildSourceOnly, 'True') }}:
-    - task: PublishTestResults@2
-      displayName: Publish Source Build Smoke Test Results
-      condition: succeededOrFailed()
-      continueOnError: true
-      inputs:
-        testRunner: vSTest
-        testResultsFiles: 'test/**/*.trx'
-        searchFolder: $(sourcesPath)
-        mergeTestResults: true
-        publishRunAttachments: true
-        testRunTitle: SourceBuild_SmokeTests_$(Agent.JobName)
+  - ${{ if eq(parameters.runTests, 'True') }}:
+    - ${{ if eq(parameters.buildSourceOnly, 'True') }}:
+      - task: PublishTestResults@2
+        displayName: Publish Source Build Smoke Test Results
+        condition: succeededOrFailed()
+        continueOnError: true
+        inputs:
+          testRunner: vSTest
+          testResultsFiles: 'test/**/*.trx'
+          searchFolder: $(sourcesPath)
+          mergeTestResults: true
+          publishRunAttachments: true
+          testRunTitle: SourceBuild_SmokeTests_$(Agent.JobName)
 
-  - task: PublishTestResults@2
-    displayName: Publish Scenario Test Results
-    condition: succeededOrFailed()
-    continueOnError: true
-    inputs:
-      testRunner: xUnit
-      testResultsFiles: 'artifacts/TestResults/**/*.xml'
-      searchFolder: $(sourcesPath)
-      mergeTestResults: true
-      publishRunAttachments: true
-      testRunTitle: ScenarioTests_$(Agent.JobName)
+    - task: PublishTestResults@2
+	  displayName: Publish Scenario Test Results
+	  condition: succeededOrFailed()
+	  continueOnError: true
+	  inputs:
+	    testRunner: xUnit
+	    testResultsFiles: 'artifacts/TestResults/**/*.xml'
+	    searchFolder: $(sourcesPath)
+	    mergeTestResults: true
+	    publishRunAttachments: true
+	    testRunTitle: ScenarioTests_$(Agent.JobName)
 
   - task: CopyFiles@2
     inputs:

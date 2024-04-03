@@ -13,6 +13,7 @@ Param(
   # Advanced settings
   [switch]$buildRepoTests,
   [switch]$testNoBuild,
+  [string]$testProjects,
   [switch]$ci,
   [switch][Alias('cwb')]$cleanWhileBuilding,
   [switch][Alias('nobl')]$excludeCIBinarylog,
@@ -30,13 +31,14 @@ function Get-Usage() {
   Write-Host "Actions:"
   Write-Host "  -clean                  Clean the solution"
   Write-Host "  -help                   Print help and exit (short: -h)"
-  Write-Host "  -test                   Run scenario tests (short: -t)"
+  Write-Host "  -test                   Run tests (repo tests omitted by default) (short: -t)"
   Write-Host "                          Use in conjunction with -testNoBuild to run tests without building"
   Write-Host ""
 
   Write-Host "Advanced settings:"
   Write-Host "  -buildRepoTests         Build repository tests"
-  Write-Host "  -testNoBuild            Run scenario tests without building when invoked with -test"
+  Write-Host "  -testNoBuild            Run tests without building when invoked with -test"
+  Write-Host "  -testProjects <value>   Run tests only for the specified projects"
   Write-Host "  -ci                     Set when running on CI server"
   Write-Host "  -cleanWhileBuilding     Cleans each repo after building (reduces disk space usage, short: -cwb)"
   Write-Host "  -excludeCIBinarylog     Don't output binary log (short: -nobl)"
@@ -76,10 +78,12 @@ function Test {
   InitializeToolset
 
   $bl = if ($binaryLog) { '/bl:' + (Join-Path $LogDir 'ScenarioTests.binlog') } else { '' }
+  $tp = if ($testProjects) { '/p:DotNetTestProjectsToRun="' + $testProjects + '"' } else { '' }
 
   MSBuild $buildProj `
     $bl `
     /t:Test `
+    $tp `
     @properties
 }
 

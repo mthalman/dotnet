@@ -17,7 +17,7 @@ using Microsoft.CodeAnalysis.Razor.ProjectSystem;
 using Microsoft.CodeAnalysis.Razor.Utilities;
 using Microsoft.CodeAnalysis.Razor.Workspaces;
 
-namespace Microsoft.VisualStudio.LanguageServices.Razor;
+namespace Microsoft.VisualStudio.Razor;
 
 [Export(typeof(IRazorStartupService))]
 internal partial class WorkspaceProjectStateChangeDetector : IRazorStartupService, IDisposable
@@ -27,8 +27,7 @@ internal partial class WorkspaceProjectStateChangeDetector : IRazorStartupServic
     private readonly IProjectWorkspaceStateGenerator _generator;
     private readonly IProjectSnapshotManager _projectManager;
     private readonly LanguageServerFeatureOptions _options;
-    private readonly Workspace _workspace;
-    private readonly ProjectSnapshotManagerDispatcher _dispatcher;
+    private readonly CodeAnalysis.Workspace _workspace;
 
     private readonly CancellationTokenSource _disposeTokenSource;
     private readonly AsyncBatchingWorkQueue<(Project?, IProjectSnapshot)> _workQueue;
@@ -40,13 +39,11 @@ internal partial class WorkspaceProjectStateChangeDetector : IRazorStartupServic
         IProjectWorkspaceStateGenerator generator,
         IProjectSnapshotManager projectManager,
         LanguageServerFeatureOptions options,
-        IWorkspaceProvider workspaceProvider,
-        ProjectSnapshotManagerDispatcher dispatcher)
+        IWorkspaceProvider workspaceProvider)
     {
         _generator = generator;
         _projectManager = projectManager;
         _options = options;
-        _dispatcher = dispatcher;
 
         _disposeTokenSource = new();
         _workQueue = new AsyncBatchingWorkQueue<(Project?, IProjectSnapshot)>(
@@ -82,14 +79,7 @@ internal partial class WorkspaceProjectStateChangeDetector : IRazorStartupServic
                 return;
             }
 
-            await _dispatcher.RunAsync(
-               static state =>
-               {
-                   var (generator, project, projectSnapshot, token) = state;
-                   generator.Update(project, projectSnapshot, token);
-               },
-               state: (_generator, project, projectSnapshot, token),
-               token);
+            await _generator.UpdateAsync(project, projectSnapshot, token);
         }
     }
 

@@ -122,6 +122,11 @@
         <target state="translated">Il membro o la funzione "{0}" ha l'attributo "TailCallAttribute", ma non è in uso in modo ricorsivo finale.</target>
         <note />
       </trans-unit>
+      <trans-unit id="chkStaticAbstractInterfaceMembers">
+        <source>A static abstract non-virtual interface member should only be called via type parameter (for example: 'T.{0}).</source>
+        <target state="new">A static abstract non-virtual interface member should only be called via type parameter (for example: 'T.{0}).</target>
+        <note />
+      </trans-unit>
       <trans-unit id="chkStaticMembersOnObjectExpressions">
         <source>Object expressions cannot implement interfaces with static abstract members or declare static members.</source>
         <target state="translated">Le espressioni di oggetto non possono implementare interfacce con membri astratti statici o dichiarare membri statici.</target>
@@ -389,7 +394,7 @@
       </trans-unit>
       <trans-unit id="featureLowerSimpleMappingsInComprehensionsToDirectCallsToMap">
         <source>Lowers [for x in xs -&gt; f x] and [|for x in xs -&gt; f x|] to calls to List.map and Array.map when xs is a list or an array, respectively.</source>
-        <target state="new">Lowers [for x in xs -&gt; f x] and [|for x in xs -&gt; f x|] to calls to List.map and Array.map when xs is a list or an array, respectively.</target>
+        <target state="translated">Riduce [per x in xs -&gt; f x] e [|per x in xs -&gt; f x|] alle chiamate rispettivamente a List.map e Array.map quando xs è un elenco o una matrice.</target>
         <note />
       </trans-unit>
       <trans-unit id="featureLowercaseDUWhenRequireQualifiedAccess">

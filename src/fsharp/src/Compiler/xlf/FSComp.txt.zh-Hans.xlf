@@ -122,6 +122,11 @@
         <target state="translated">成员或函数“{0}”具有 "TailCallAttribute" 属性，但未以尾递归方式使用。</target>
         <note />
       </trans-unit>
+      <trans-unit id="chkStaticAbstractInterfaceMembers">
+        <source>A static abstract non-virtual interface member should only be called via type parameter (for example: 'T.{0}).</source>
+        <target state="new">A static abstract non-virtual interface member should only be called via type parameter (for example: 'T.{0}).</target>
+        <note />
+      </trans-unit>
       <trans-unit id="chkStaticMembersOnObjectExpressions">
         <source>Object expressions cannot implement interfaces with static abstract members or declare static members.</source>
         <target state="translated">对象表达式无法实现具有静态抽象成员或声明静态成员的接口。</target>
@@ -389,7 +394,7 @@
       </trans-unit>
       <trans-unit id="featureLowerSimpleMappingsInComprehensionsToDirectCallsToMap">
         <source>Lowers [for x in xs -&gt; f x] and [|for x in xs -&gt; f x|] to calls to List.map and Array.map when xs is a list or an array, respectively.</source>
-        <target state="new">Lowers [for x in xs -&gt; f x] and [|for x in xs -&gt; f x|] to calls to List.map and Array.map when xs is a list or an array, respectively.</target>
+        <target state="translated">当 xs 是列表或数组时，将 [for x in xs -&gt; f x] 和 [|for x in xs -&gt; f x|] 分别降级为对 List.map 和 Array.map 的调用。</target>
         <note />
       </trans-unit>
       <trans-unit id="featureLowercaseDUWhenRequireQualifiedAccess">

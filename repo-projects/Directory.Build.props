@@ -94,7 +94,8 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <TestActions>$(FlagParameterPrefix)test</TestActions>
+    <TestActions>$(FlagParameterPrefix)restore</TestActions>
+    <TestActions>$(TestActions) $(FlagParameterPrefix)test</TestActions>
 
     <TestArgs>$(FlagParameterPrefix)ci</TestArgs>
     <TestArgs>$(TestArgs) $(FlagParameterPrefix)configuration $(Configuration)</TestArgs>

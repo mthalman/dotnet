@@ -58,7 +58,7 @@
       <_TestEnvVars Include="MSBuildSDKsPath=$(_MSBuildSdksDir)" />
     </ItemGroup>
 
-    <Exec Command='"$(DotNetTool)" $(AdditionalDotNetArgs) "$(TargetPath)" $(TestArgs)'
+    <Exec Command='"$(DotNetTool)" "$(TargetPath)" $(TestArgs)'
           EnvironmentVariables="@(_TestEnvVars)" />
   </Target>
 

@@ -31,7 +31,7 @@
     <MakeDir Directories="$(PreviouslySourceBuiltPackagesPath)" />
     <Exec Command="tar -xzf $(ExternalTarballsDir)$(SourceBuiltArtifactsTarballName).*$(ArchiveExtension)"
           WorkingDirectory="$(PreviouslySourceBuiltPackagesPath)" />
-  </Target>
+  </Target>  
 
   <ItemGroup>
     <SharedComponentsPrereqsArchivePathItem Include="$(ExternalTarballsDir)$(SourceBuiltSharedComponentsTarballName).*$(ArchiveExtension)" />

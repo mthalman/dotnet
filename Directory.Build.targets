@@ -68,14 +68,13 @@
           Outputs="@(_SharedComponentFilteredPackages)">
 
     <PropertyGroup>
-      <_PreviouslySourceBuiltSharedComponentAssetManifests>$(SharedComponentsArtifactsPath)VerticalManifest.xml</_PreviouslySourceBuiltSharedComponentAssetManifests>
       <SharedRepositoryReferenceString>;@(SharedRepositoryReference);</SharedRepositoryReferenceString>
       <!-- Property to control filtering mode: true = include only tooling components, false = exclude tooling components (default) -->
       <IncludeOnlyToolingComponents Condition="'$(IncludeOnlyToolingComponents)' == ''">false</IncludeOnlyToolingComponents>
     </PropertyGroup>
 
-    <GetKnownArtifactsFromAssetManifests AssetManifests="$(_PreviouslySourceBuiltSharedComponentAssetManifests)"
-                                         Condition="Exists($(_PreviouslySourceBuiltSharedComponentAssetManifests))">
+    <GetKnownArtifactsFromAssetManifests AssetManifests="$(SharedComponentAssetManifests)"
+                                         Condition="Exists($(SharedComponentAssetManifests))">
       <Output TaskParameter="KnownPackages" ItemName="_SharedComponentFilteredPackages" />
     </GetKnownArtifactsFromAssetManifests>
 

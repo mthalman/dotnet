@@ -48,7 +48,7 @@
 
   <!-- Exclude shared repositories from the build, unless shared component building is explicitly enabled. -->
   <ItemGroup Condition="'$(DotNetBuildSharedComponents)' != 'true'">
-    <RepositoryReference Remove="@(SharedRepositoryReference)" />
+    <RepositoryReference Update="@(SharedRepositoryReference)" BuildReference="false" SharedComponent="true" />
   </ItemGroup>
 
   <!-- Don't build repositories that aren't part of the current build pass. -->
@@ -647,8 +647,18 @@
           DependsOnTargets="ResolveProjectReferences;GetProducedPackagesFromDependentVerticals"
           Condition="'$(IsUtilityProject)' != 'true'"
           Returns="@(ProducedPackage);@(ProducedPackageFromDependentVertical)">
+    
+    <PropertyGroup>
+      <_SharedRepositoryReferenceString>;@(SharedRepositoryReference);</_SharedRepositoryReferenceString>
+      <_IsSharedComponentRepoProject>false</_IsSharedComponentRepoProject>
+      <_IsSharedComponentRepoProject Condition="$(_SharedRepositoryReferenceString.Contains(';$(RepositoryName);'))">true</_IsSharedComponentRepoProject>
+      <_UseLocalBuildManifest>true</_UseLocalBuildManifest>
+      <_UseLocalBuildManifest Condition="'$(_IsSharedComponentRepoProject)' == 'true' and '$(DotNetBuildSourceOnly)' != 'true'">false</_UseLocalBuildManifest>
+    </PropertyGroup>
+
     <ItemGroup>
-      <RepoAssetManifest Include="$(RepoAssetManifestsDir)*.xml" />
+      <RepoAssetManifest Condition="'$(_UseLocalBuildManifest)' == 'true'" Include="$(RepoAssetManifestsDir)*.xml" />
+      <RepoAssetManifest Condition="'$(_UseLocalBuildManifest)' != 'true'" Include="$(ArtifactsObjDir)/SharedMergedManifest.xml" />
     </ItemGroup>
 
     <PropertyGroup>
@@ -658,7 +668,7 @@
     <Message Importance="High" Text="$([System.IO.File]::ReadAllText('$(RepoConsoleLogFile)'))" Condition="'$(LogManifestNotFoundError)' == 'true' and '$(MinimalConsoleLogOutput)' == 'true' and Exists('$(RepoConsoleLogFile)')" />
     <Error Text="No repository asset manifest files found at '$(RepoAssetManifestsDir)*.xml'. This often means the build failed but did not log an error." Condition="'$(LogManifestNotFoundError)' == 'true'" />
 
-    <GetKnownArtifactsFromAssetManifests AssetManifests="@(RepoAssetManifest)">
+    <GetKnownArtifactsFromAssetManifests AssetManifests="@(RepoAssetManifest)" RepoOrigins="$(RepositoryName)">
       <Output TaskParameter="KnownPackages" ItemName="ProducedPackage" />
       <Output TaskParameter="KnownBlobs" ItemName="ProducedAsset" />
     </GetKnownArtifactsFromAssetManifests>
@@ -677,7 +687,8 @@
   <Target Name="GetProducedPackagesFromTransitiveReferences"
           DependsOnTargets="PrepareRepositoryReferences"
           Returns="@(_DependencyProducedPackage)">
-    <MSBuild Projects="@(TransitiveRepositoryReference->WithMetadataValue('BuildReference', 'true')->Metadata('Project'))"
+    <MSBuild Projects="@(TransitiveRepositoryReference->WithMetadataValue('BuildReference', 'true')->Metadata('Project'));
+                       @(TransitiveRepositoryReference->WithMetadataValue('SharedComponent', 'true')->Metadata('Project'))"
              Targets="GetProducedPackages"
              BuildInParallel="true">
       <Output TaskParameter="TargetOutputs" ItemName="_DependencyProducedPackage" />

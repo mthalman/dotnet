@@ -6,7 +6,7 @@
 
   <Target Name="DownloadMergedManifest"
           BeforeTargets="Build"
-          Condition="'$(DotNetBuildSourceOnly)' != 'true' and '$(VersionSDKMinor)' != '1'"
+          Condition="'$(DotNetBuildSourceOnly)' != 'true' and '$(DotNetBuildSharedComponents)' != 'true'"
           Inputs="$(RepositoryEngineeringDir)Versions.props"
           Outputs="$(SharedMergedManifest)">
 

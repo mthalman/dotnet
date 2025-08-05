@@ -653,7 +653,9 @@
       <_IsSharedComponentRepoProject>false</_IsSharedComponentRepoProject>
       <_IsSharedComponentRepoProject Condition="$(_SharedRepositoryReferenceString.Contains(';$(RepositoryName);'))">true</_IsSharedComponentRepoProject>
       <_UseLocalBuildManifest>true</_UseLocalBuildManifest>
-      <_UseLocalBuildManifest Condition="'$(_IsSharedComponentRepoProject)' == 'true' and '$(DotNetBuildSourceOnly)' != 'true'">false</_UseLocalBuildManifest>
+      <_UseLocalBuildManifest Condition="'$(_IsSharedComponentRepoProject)' == 'true' and
+                                         '$(DotNetBuildSourceOnly)' != 'true' and
+                                         '$(DotNetBuildSharedComponents)' != 'true'">false</_UseLocalBuildManifest>
     </PropertyGroup>
 
     <ItemGroup>

@@ -1,4 +1,6 @@
 <Project>
+  <Import Project="$(RepositoryEngineeringDir)shared-source-only.targets" />
+
   <!-- Add targets here that run logic that depends on the merged asset manifest and published packages. -->
   <UsingTask TaskName="Microsoft.DotNet.SourceBuild.Tasks.LeakDetection.CheckForPoison" AssemblyFile="$(MicrosoftDotNetSourceBuildTasksLeakDetectionAssembly)" TaskFactory="TaskHostFactory" Condition="'$(EnablePoison)' == 'true'" />
   <Target Name="ReportPoisonUsage"
@@ -88,9 +90,17 @@
           Inputs="@(PackageToPublish);$(SourceBuiltVersionInputName);$(AssetManifestFilePath)"
           Outputs="$(SourceBuiltTarballName);$(SourceBuiltVersionName);$(AllPackageVersionsPropsName);$(SourceBuiltMergedAssetManifestName)"
           Condition="'$(IsPublishPass2)' != 'true'">
+    
+    <MSBuild Projects="$(MSBuildProjectFullPath)"
+             Targets="GetFilteredSharedComponentPackages"
+             Condition="Exists('$(SharedComponentsArtifactsPath)')"
+             Properties="SharedComponentFilterMode=NonToolingOnly;IsPublishPass2=true">
+      <Output TaskParameter="TargetOutputs" ItemName="_FilteredSharedComponentPackages" />
+    </MSBuild>
+
     <!-- Copy packages to layout directory. Since there are a large number of files,
           this will use symlinks instead of copying files to make this execute quickly. -->
-    <Copy SourceFiles="@(PackageToPublish)"
+    <Copy SourceFiles="@(PackageToPublish);@(_FilteredSharedComponentPackages->'%(PackagePath)')"
           DestinationFolder="$(SourceBuiltLayoutDir)"
           UseSymbolicLinksIfPossible="true" />
 
@@ -117,7 +127,7 @@
           UseSymbolicLinksIfPossible="true" />
 
     <!-- Create a PackageVersions.props file that includes entries for all packages. -->
-    <WritePackageVersionsProps KnownPackages="@(ProducedPackage->Metadata('PackageId'))"
+    <WritePackageVersionsProps KnownPackages="@(ProducedPackage->Metadata('PackageId'));@(_FilteredSharedComponentPackages)"
                                ExtraProperties="@(ExtraPackageVersionPropsPackageInfo)"
                                VersionPropsFlowType="AllPackages"
                                OutputPath="$(AllPackageVersionsPropsName)"
@@ -151,6 +161,23 @@
           SkipUnchangedFiles="true">
       <Output TaskParameter="CopiedFiles" ItemName="FileWrites" />
     </Copy>
+  </Target>
+
+  <Target Name="IncludeSharedComponentsAsArtifacts"
+          AfterTargets="DiscoverArtifacts"
+          Condition="'$(IsPublishPass2)' != 'true'">
+
+    <MSBuild Projects="$(MSBuildProjectFullPath)"
+             Targets="GetFilteredSharedComponentPackages"
+             Properties="SharedComponentFilterMode=NonToolingOnly;IsPublishPass2=true">
+      <Output TaskParameter="TargetOutputs" ItemName="_NonToolingSharedComponentPackages" />
+    </MSBuild>
+
+    <ItemGroup>
+      <Artifact Include="@(_NonToolingSharedComponentPackages->'%(PackagePath)')">
+        <Kind>Package</Kind>
+      </Artifact>
+    </ItemGroup>
   </Target>
 
 </Project>

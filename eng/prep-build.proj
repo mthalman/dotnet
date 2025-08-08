@@ -29,10 +29,7 @@
     </MSBuild>
 
     <ItemGroup>
-      <_BootstrapPackagesFilenames Include="@(_BootstrapPackages)">
-        <PackagePath>$(SharedComponentsArtifactsPath)$([System.IO.Path]::GetFileName('%(PipelineArtifactPath)'))</PackagePath>
-      </_BootstrapPackagesFilenames>
-      <_BootstrapPackagesToDelete Include="@(_BootstrapPackagesFilenames->'%(PackagePath)')" />
+      <_BootstrapPackagesToDelete Include="@(_BootstrapPackages->'%(PackagePath)')" />
     </ItemGroup>
     <!-- Delete bootstrap packages that shouldn't be included. This is necessary to avoid prebuilts from occurring.   
         For example, the Microsoft.NETCore.Platforms package can exist in the shared components from two different

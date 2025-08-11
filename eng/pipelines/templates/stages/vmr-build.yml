@@ -143,3 +143,5 @@ stages:
         # are available from the subset of jobs that get build in PRs compared to the full build. Instead, we run
         # the tests in the same job as the build and filter out some of the tests that can't be executed in this state.
         useMicrosoftBuildAssetsForTests: false
+      ${{ if and(ne(variables['Build.SourceBranch'], 'refs/head/main'), not(contains(variables['Build.SourceBranch'], '.1xx'))) }}:
+        excludeRuntimeDependentJobs: true

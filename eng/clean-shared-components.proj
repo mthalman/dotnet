@@ -15,10 +15,12 @@
     <SharedComponentsPrereqsArchiveFile>@(SharedComponentsPrereqsArchivePathItem)</SharedComponentsPrereqsArchiveFile>
     <HasSharedComponents>false</HasSharedComponents>
     <HasSharedComponents Condition="'$(SharedComponentsPrereqsArchiveFile)' != '' or '$(CustomSharedComponentsArtifactsPath)' != ''">true</HasSharedComponents>
+    <SharedComponentFilterMode>BootstrapOnly</SharedComponentFilterMode>
   </PropertyGroup>
 
   <Target Name="CleanSharedComponentsArtifacts"
           BeforeTargets="Build"
+          DependsOnTargets="GetFilteredSharedComponentPackages"
           Condition="'$(DotNetBuildSourceOnly)' == 'true' and '$(HasSharedComponents)' == 'true'"
           Outputs="$(BaseIntermediateOutputPath)UpdateNuGetConfig.complete">
 

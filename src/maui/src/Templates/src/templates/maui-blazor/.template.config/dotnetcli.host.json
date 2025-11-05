@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json.schemastore.org/dotnetcli.host",
+  "symbolInfo": {
+    "msExtensionsLoggingDebugVersion": {
+      "isHidden": true
+    },
+    "Framework": {
+      "longName": "framework"
+    },
+    "IncludeSampleContent": {
+      "isHidden": true
+    },
+    "Empty": {
+      "isHidden": true
+    }
+  },
+  "usageExamples": [
+    "--framework DOTNET_TFM_VALUE"
+  ]
+}

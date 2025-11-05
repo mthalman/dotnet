@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <Import Condition="'$(SampleProject)' != 'true'" Project="eng\Versions.targets" />
-  <Import Condition="'$(SampleProject)' != 'true' and '$(MauiTestProject)' != 'true'" Project="eng\BannedApis.targets" />
+  <Import Condition="'$(SampleProject)' != 'true' and '$(MauiTestProject)' != 'true' and '$(DotNetBuildSourceOnly)' != 'true'" Project="eng\BannedApis.targets" />
   <Import Project="eng\AndroidX.targets" />
   <Import Project="eng\NuGetVersions.targets" />
 

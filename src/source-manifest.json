@@ -55,6 +55,12 @@
       "commitSha": "89d788641914c5d0b87fddfa11f4df0b5cfaa73d"
     },
     {
+      "barId": 288357,
+      "path": "maui",
+      "remoteUri": "https://github.com/dotnet/maui",
+      "commitSha": "ad915a4f47346b746998dabaa541a7e3bab1d6cd"
+    },
+    {
       "barId": 293177,
       "path": "msbuild",
       "remoteUri": "https://github.com/dotnet/msbuild",

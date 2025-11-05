@@ -1,0 +1,8 @@
+{
+  "solution": {
+    "path": "Microsoft.Maui.sln",
+    "projects": [
+      "src\\Workload\\Microsoft.NET.Sdk.Maui.Manifest\\Microsoft.NET.Sdk.Maui.Manifest.csproj"
+    ]
+  }
+}

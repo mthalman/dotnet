@@ -70,6 +70,9 @@
     <AddSourceToNuGetConfig NuGetConfigFile="$(NuGetConfigFile)"
                             SourceName="SBRP"
                             SourcePath="$(ArtifactsPackagesDir)" />
+    <AddSourceToNuGetConfig NuGetConfigFile="$(NuGetConfigFile)"
+                            SourceName="SBRP-dependencies"
+                            SourcePath="$(NUGET_PACKAGES)" />
 
     <ItemGroup>
       <EmbedInBinlog Include="$(NuGetConfigFile)" />

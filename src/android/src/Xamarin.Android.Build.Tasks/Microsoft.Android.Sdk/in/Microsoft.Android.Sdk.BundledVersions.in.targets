@@ -1,0 +1,50 @@
+<!--
+***********************************************************************************************
+Microsoft.Android.Sdk.BundledVersions.targets
+WARNING:  DO NOT MODIFY this file unless you are knowledgeable about MSBuild and have
+          created a backup copy.  Incorrect changes to this file will make it
+          impossible to load or build your projects from the command-line or the IDE.
+***********************************************************************************************
+-->
+<Project>
+  <PropertyGroup>
+    <AndroidNETSdkVersion>@ANDROID_PACK_VERSION_LONG@</AndroidNETSdkVersion>
+    <XamarinAndroidVersion>@ANDROID_PACK_VERSION_LONG@</XamarinAndroidVersion>
+    <_AndroidLatestStableApiLevel>@ANDROID_LATEST_STABLE_API_LEVEL@</_AndroidLatestStableApiLevel>
+    <_AndroidLatestUnstableApiLevel>@ANDROID_LATEST_UNSTABLE_API_LEVEL@</_AndroidLatestUnstableApiLevel>
+  </PropertyGroup>
+  <PropertyGroup>
+    <_AndroidTargetingPackId Condition="$(TargetPlatformVersion.EndsWith('.0'))">$(TargetPlatformVersion.Substring(0, $(TargetPlatformVersion.LastIndexOf('.0'))))</_AndroidTargetingPackId>
+    <_AndroidTargetingPackId Condition="'$(_AndroidTargetingPackId)' == ''">$(TargetPlatformVersion)</_AndroidTargetingPackId>
+    <_AndroidErrorOnTargetPlatformVersion Condition=" '$(_AndroidTargetingPackId)' != '$(_AndroidLatestStableApiLevel)' and '$(_AndroidTargetingPackId)' != '$(_AndroidLatestUnstableApiLevel)' ">$(_AndroidTargetingPackId)</_AndroidErrorOnTargetPlatformVersion>
+    <_AndroidTargetingPackId Condition=" '$(_AndroidTargetingPackId)' != '$(_AndroidLatestStableApiLevel)' and '$(_AndroidTargetingPackId)' != '$(_AndroidLatestUnstableApiLevel)' ">$(_AndroidLatestStableApiLevel)</_AndroidTargetingPackId>
+    <_AndroidManagedRuntimePackId Condition=" '$(_AndroidManagedRuntimePackId)' == '' ">$(_AndroidTargetingPackId)</_AndroidManagedRuntimePackId>
+    <_AndroidManagedRuntimePackId Condition=" '$(_AndroidManagedRuntimePackId)' != '$(_AndroidLatestStableApiLevel)' and '$(_AndroidManagedRuntimePackId)' != '$(_AndroidLatestUnstableApiLevel)' ">$(_AndroidLatestStableApiLevel)</_AndroidManagedRuntimePackId>
+    <_AndroidRuntimePackId Condition=" '$(_AndroidRuntimePackId)' == '' ">$(_AndroidLatestStableApiLevel)</_AndroidRuntimePackId>
+    <_AndroidRuntimePackRuntime Condition=" '$(_AndroidRuntimePackRuntime)' == '' ">Mono</_AndroidRuntimePackRuntime>
+  </PropertyGroup>
+  <ItemGroup>
+    <KnownFrameworkReference
+        Include="Microsoft.Android"
+        TargetFramework="@DOTNET_TARGET_FRAMEWORK@"
+        RuntimeFrameworkName="Microsoft.Android"
+        LatestRuntimeFrameworkVersion="**FromWorkload**"
+        TargetingPackName="Microsoft.Android.Ref.$(_AndroidTargetingPackId)"
+        TargetingPackVersion="**FromWorkload**"
+        RuntimePackNamePatterns="Microsoft.Android.Runtime.$(_AndroidManagedRuntimePackId).android"
+        RuntimePackRuntimeIdentifiers="android-arm;android-arm64;android-x86;android-x64"
+        Profile="Android"
+    />
+    <KnownFrameworkReference
+        Include="Microsoft.Android.Runtimes"
+        TargetFramework="@DOTNET_TARGET_FRAMEWORK@"
+        RuntimeFrameworkName="Microsoft.Android.Runtimes"
+        LatestRuntimeFrameworkVersion="**FromWorkload**"
+        TargetingPackName="Microsoft.Android.Ref.$(_AndroidTargetingPackId)"
+        TargetingPackVersion="**FromWorkload**"
+        RuntimePackNamePatterns="Microsoft.Android.Runtime.$(_AndroidRuntimePackRuntime).$(_AndroidRuntimePackId).**RID**"
+        RuntimePackRuntimeIdentifiers="android-arm;android-arm64;android-x86;android-x64"
+        Profile="Android"
+    />
+  </ItemGroup>
+</Project>

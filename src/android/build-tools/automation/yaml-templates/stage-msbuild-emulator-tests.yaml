@@ -1,0 +1,208 @@
+# Runs MSBuild tests against a device running on macOS
+
+parameters:
+  stageName: msbuilddevice_tests
+  job_name: 'mac_dotnetdevice_tests'
+  dependsOn: mac_build
+  agent_count: 12
+  stageCondition: succeeded()
+  stagePrefix: ''
+  xaSourcePath: $(System.DefaultWorkingDirectory)
+  repositoryAlias: 'self'
+  commit: ''
+  usesCleanImages: true
+  shouldFailOnIssue: true
+  emulatorStartContinueOnError: false
+  use1ESTemplate: true
+
+stages:
+- stage: ${{ parameters.stageName }}
+  displayName: ${{ parameters.stagePrefix }}MSBuild Emulator Tests
+  dependsOn: ${{ parameters.dependsOn }}
+  condition: ${{ parameters.stageCondition }}
+  jobs:
+  - job: ${{ parameters.job_name }}
+    strategy:
+      parallel: ${{ parameters.agent_count }}
+    displayName: "macOS > Tests > MSBuild+Emulator"
+    pool:
+      name: Azure Pipelines
+      vmImage: $(HostedMacImageWithEmulator)
+      os: macOS
+    timeoutInMinutes: 180
+    cancelTimeoutInMinutes: 5
+    workspace:
+      clean: all
+    steps:
+    - template: /build-tools/automation/yaml-templates/setup-test-environment.yaml
+      parameters:
+        installTestSlicer: true
+        installApkDiff: false
+        updateMono: true
+        xaSourcePath: ${{ parameters.xaSourcePath }}
+        repositoryAlias: ${{ parameters.repositoryAlias }}
+        commit: ${{ parameters.commit }}
+        xaprepareScenario: EmulatorTestDependencies
+
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        artifactName: $(TestAssembliesArtifactName)
+        downloadPath: ${{ parameters.xaSourcePath }}/bin/Test$(XA.Build.Configuration)
+
+    # Currently needed for samples/NativeAOT
+    - template: /build-tools/automation/yaml-templates/run-dotnet-preview.yaml@self
+      parameters:
+        project: Xamarin.Android.sln
+        arguments: -t:PrepareJavaInterop -c $(XA.Build.Configuration) --no-restore
+        displayName: prepare java.interop $(XA.Build.Configuration)
+        continueOnError: false
+
+    - template: /build-tools/automation/yaml-templates/start-stop-emulator.yaml
+      parameters:
+        xaSourcePath: ${{ parameters.xaSourcePath }}
+        startContinueOnError: ${{ parameters.emulatorStartContinueOnError }}
+
+    - template: /build-tools/automation/yaml-templates/run-sliced-nunit-tests.yaml
+      parameters:
+        testAssembly: ${{ parameters.xaSourcePath }}/bin/Test$(XA.Build.Configuration)/MSBuildDeviceIntegration/$(DotNetStableTargetFramework)/MSBuildDeviceIntegration.dll
+        testFilter: $(ExcludedNightlyNUnitCategories)
+        testRunTitle: MSBuildDeviceIntegration On Device - macOS
+
+    - ${{ if ne(parameters.usesCleanImages, true) }}:
+      - template: start-stop-emulator.yaml
+        parameters:
+          command: stop
+          xaSourcePath: ${{ parameters.xaSourcePath }}
+
+    - template: /build-tools/automation/yaml-templates/upload-results.yaml
+      parameters:
+        artifactName: Test Results - MSBuild With Emulator - macOS-$(System.JobPositionInPhase)
+        xaSourcePath: ${{ parameters.xaSourcePath }}
+        use1ESTemplate: ${{ parameters.use1ESTemplate }}
+
+    - template: /build-tools/automation/yaml-templates/fail-on-issue.yaml
+      parameters:
+        condition: ${{ parameters.shouldFailOnIssue }}
+
+  - job: wear_tests
+    displayName: macOS > Tests > WearOS 
+    timeoutInMinutes: 180
+    cancelTimeoutInMinutes: 2
+    strategy:
+      parallel: 2
+    variables:
+      avdApiLevel: 30
+      avdAbi: x86
+      avdType: android-wear
+      deviceName: wear_square
+    pool:
+      name: Azure Pipelines
+      vmImage: $(HostedMacImageWithEmulator)
+      os: macOS
+    workspace:
+      clean: all
+    steps:
+    - template: /build-tools/automation/yaml-templates/setup-test-environment.yaml
+      parameters:
+        installTestSlicer: true
+        installApkDiff: false
+        xaSourcePath: ${{ parameters.xaSourcePath }}
+        repositoryAlias: ${{ parameters.repositoryAlias }}
+        commit: ${{ parameters.commit }}
+        xaprepareScenario: EmulatorTestDependencies
+
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        artifactName: $(TestAssembliesArtifactName)
+        downloadPath: ${{ parameters.xaSourcePath }}/bin/Test$(XA.Build.Configuration)
+
+    - template: /build-tools/automation/yaml-templates/start-stop-emulator.yaml
+      parameters:
+        specificImage: true
+        deviceName: $(deviceName)
+        avdApiLevel: $(avdApiLevel)
+        avdAbi: $(avdAbi)
+        avdType: $(avdType)
+        xaSourcePath: ${{ parameters.xaSourcePath }}
+        startContinueOnError: ${{ parameters.emulatorStartContinueOnError }}
+
+    - template: /build-tools/automation/yaml-templates/run-sliced-nunit-tests.yaml
+      parameters:
+        testRunTitle: WearOS On Device - macOS
+        testAssembly: ${{ parameters.xaSourcePath }}/bin/Test$(XA.Build.Configuration)/MSBuildDeviceIntegration/$(DotNetStableTargetFramework)/MSBuildDeviceIntegration.dll
+        testFilter: cat = WearOS
+        xaSourcePath: ${{ parameters.xaSourcePath }}
+
+    - ${{ if ne(parameters.usesCleanImages, true) }}:
+      - template: /build-tools/automation/yaml-templates/start-stop-emulator.yaml
+        parameters:
+          command: stop
+          specificImage: true
+          deviceName: $(deviceName)
+          avdApiLevel: $(avdApiLevel)
+          avdAbi: $(avdAbi)
+          avdType: $(avdType)
+          xaSourcePath: ${{ parameters.xaSourcePath }}
+
+    - template: /build-tools/automation/yaml-templates/upload-results.yaml
+      parameters:
+        configuration: $(XA.Build.Configuration)
+        artifactName: Test Results - Emulator $(avdApiLevel)-$(avdAbi)-$(avdType) - macOS
+        xaSourcePath: ${{ parameters.xaSourcePath }}
+        use1ESTemplate: ${{ parameters.use1ESTemplate }}
+
+    - template: /build-tools/automation/yaml-templates/fail-on-issue.yaml
+      parameters:
+        condition: ${{ parameters.shouldFailOnIssue }}
+
+  - job: debug_windows_tests
+    displayName: Windows > Tests > Debugging
+    timeoutInMinutes: 180
+    pool:
+      name: Android-1ESPT
+      image: $(WindowsPoolImage1ESPT)
+      os: windows
+    workspace:
+      clean: all
+    steps:
+    - template: /build-tools/automation/yaml-templates/setup-test-environment.yaml
+      parameters:
+        installTestSlicer: true
+        installApkDiff: false
+        xaSourcePath: ${{ parameters.xaSourcePath }}
+        repositoryAlias: ${{ parameters.repositoryAlias }}
+        commit: ${{ parameters.commit }}
+        xaprepareScenario: EmulatorTestDependencies
+
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        artifactName: $(TestAssembliesArtifactName)
+        downloadPath: ${{ parameters.xaSourcePath }}/bin/Test$(XA.Build.Configuration)
+
+    - template: /build-tools/automation/yaml-templates/start-stop-emulator.yaml
+      parameters:
+        xaSourcePath: ${{ parameters.xaSourcePath }}
+        startContinueOnError: ${{ parameters.emulatorStartContinueOnError }}
+
+    - template: /build-tools/automation/yaml-templates/run-sliced-nunit-tests.yaml
+      parameters:
+        testAssembly: $(System.DefaultWorkingDirectory)\bin\Test$(XA.Build.Configuration)\MSBuildDeviceIntegration\$(DotNetStableTargetFramework)\MSBuildDeviceIntegration.dll
+        testFilter: name == DebuggingTest
+        testRunTitle: DebuggingTest tests on Windows
+
+    - ${{ if ne(parameters.usesCleanImages, true) }}:
+      - template: /build-tools/automation/yaml-templates/start-stop-emulator.yaml
+        parameters:
+          command: stop
+          xaSourcePath: ${{ parameters.xaSourcePath }}
+
+    - template: /build-tools/automation/yaml-templates/upload-results.yaml
+      parameters:
+        configuration: $(XA.Build.Configuration)
+        artifactName: Test Results - Emulator Debugging - Windows-$(System.JobPositionInPhase)
+        xaSourcePath: ${{ parameters.xaSourcePath }}
+        use1ESTemplate: ${{ parameters.use1ESTemplate }}
+
+    - template: /build-tools/automation/yaml-templates/fail-on-issue.yaml
+      parameters:
+        condition: ${{ parameters.shouldFailOnIssue }}

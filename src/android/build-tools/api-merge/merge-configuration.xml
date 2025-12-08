@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Configuration>
+  <!-- Both lists should be sorted in chronological order -->
+  <Inputs>
+    <File Path="api-10.xml.in" Level="10" />
+    <File Path="api-15.xml.in" Level="15" />
+    <File Path="api-16.xml.in" Level="16" />
+    <File Path="api-17.xml.in" Level="17" />
+    <File Path="api-18.xml.in" Level="18" />
+    <File Path="api-19.xml.in" Level="19" />
+    <File Path="api-20.xml.in" Level="20" />
+    <File Path="api-21.xml.in" Level="21" />
+    <File Path="api-22.xml.in" Level="22" />
+    <File Path="api-23.xml.in" Level="23" />
+    <File Path="api-24.xml.in" Level="24" />
+    <File Path="api-25.xml.in" Level="25" />
+    <File Path="api-26.xml.in" Level="26" />
+    <File Path="api-27.xml.in" Level="27" />
+    <File Path="api-28.xml.in" Level="28" />
+    <File Path="api-29.xml.in" Level="29" />
+    <File Path="api-30.xml.in" Level="30" />
+    <File Path="api-31.xml.in" Level="31" />
+    <File Path="api-32.xml.in" Level="32" />
+    <File Path="api-33.xml.in" Level="33" />
+    <File Path="api-34.xml.in" Level="34" />
+    <File Path="api-35.xml.in" Level="35" />
+    <File Path="api-36.xml.in" Level="36" />
+    <File Path="api-36.1.xml.in"  Level="36.1" />
+  </Inputs>
+  <Outputs>
+    <File Path="api-36.1.xml"     LastLevel="36.1" />
+  </Outputs>
+</Configuration>

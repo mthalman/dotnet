@@ -1,0 +1,55 @@
+<!--
+***********************************************************************************************
+Microsoft.Android.Ref.proj
+
+This project file is used to create the Microsoft.Android.Ref.[API] NuGet, which is the
+targeting pack containing reference assemblies and other compile time assets required
+by projects that use the Microsoft.Android framework in .NET 6+.
+***********************************************************************************************
+-->
+<Project Sdk="Microsoft.Build.NoTargets">
+
+  <Sdk Name="Microsoft.DotNet.SharedFramework.Sdk" Version="$(MicrosoftDotNetBuildTasksFeedPackageVersion)" />
+
+  <PropertyGroup>
+    <PackageId>Microsoft.Android.Ref.$(AndroidApiLevel)</PackageId>
+    <OverridePackageId>$(PackageId)</OverridePackageId>
+    <PlatformPackageType>TargetingPack</PlatformPackageType>
+    <UseTemplatedPlatformManifest>true</UseTemplatedPlatformManifest>
+    <Description>Microsoft.Android reference assemblies for API $(AndroidApiLevel). Please do not reference directly.</Description>
+    <_AndroidRefPackAssemblyPath>ref/$(DotNetTargetFramework)</_AndroidRefPackAssemblyPath>
+    <_AndroidRefPackAnalyzersPath>analyzers/dotnet/cs</_AndroidRefPackAnalyzersPath>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <BeforePack>
+      _GetDefaultPackageVersion;
+      $(BeforePack);
+    </BeforePack>
+  </PropertyGroup>
+
+  <Target Name="_GetTargetingPackItems"
+      DependsOnTargets="_GetLicense"
+      BeforeTargets="GetFilesToPackage" >
+    <ItemGroup>
+      <_AndroidRefPackAssemblies Include="$(JavaInteropSourceDirectory)\bin\$(Configuration)-$(JavaInteropTargetFrameworkVersion)\ref\Java.Interop.dll" />
+      <_AndroidRefPackAssemblies Include="$(_MonoAndroidNETDefaultOutDir)ref\Mono.Android.dll" />
+      <_AndroidRefPackAssemblies Include="$(_MonoAndroidNETDefaultOutDir)ref\Mono.Android.Runtime.dll" />
+      <!-- Always include stable Mono.Android.Export.dll -->
+      <_AndroidRefPackAssemblies Include="$(_MonoAndroidNETOutputRoot)$(AndroidLatestStableApiLevel)\ref\Mono.Android.Export.dll" />
+      <_AndroidRefPackAnalyzers Include="$(MicrosoftAndroidSdkAnalysisOutDir)Microsoft.Android.Sdk.Analysis.dll" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <FrameworkListFileClass Include="@(_AndroidRefPackAssemblies->'%(Filename)%(Extension)')" Profile="Android" />
+      <FrameworkListFileClass Include="@(_AndroidRefPackAnalyzers->'%(Filename)%(Extension)')" Profile="Android" />
+      <FilesToPackage Include="@(_AndroidRefPackAssemblies)" TargetPath="$(_AndroidRefPackAssemblyPath)" />
+      <FilesToPackage Include="@(_AndroidRefPackAnalyzers)" TargetPath="$(_AndroidRefPackAnalyzersPath)" />
+      <FilesToPackage Include="$(_MonoAndroidNETDefaultOutDir)Java.Interop.xml" TargetPath="$(_AndroidRefPackAssemblyPath)" />
+      <FilesToPackage Include="$(_MonoAndroidNETDefaultOutDir)Mono.Android.xml" TargetPath="$(_AndroidRefPackAssemblyPath)" />
+      <FilesToPackage Include="$(_MonoAndroidNETDefaultOutDir)mono.android.jar" TargetPath="$(_AndroidRefPackAssemblyPath)" />
+      <FilesToPackage Include="$(_MonoAndroidNETDefaultOutDir)mono.android.dex" TargetPath="$(_AndroidRefPackAssemblyPath)" />
+    </ItemGroup>
+  </Target>
+
+</Project>

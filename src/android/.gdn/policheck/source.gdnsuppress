@@ -1,0 +1,149 @@
+{
+  "hydrated": false,
+  "properties": {
+    "helpUri": "https://eng.ms/docs/microsoft-security/security/azure-security/cloudai-security-fundamentals-engineering/security-integration/guardian-wiki/microsoft-guardian/general/suppressions",
+    "hydrationStatus": "This file does not contain identifying data. It is safe to check into your repo. To hydrate this file with identifying data, run `guardian hydrate --help` and follow the guidance."
+  },
+  "version": "1.0.0",
+  "suppressionSets": {
+    "default": {
+      "name": "default",
+      "createdDate": "2025-02-05 11:48:04Z",
+      "lastUpdatedDate": "2025-02-05 11:48:04Z"
+    }
+  },
+  "results": {
+    "db8916a0f0cdca4082c540921dd362e09a9ff413862ab826308411b76ee35789": {
+      "signature": "db8916a0f0cdca4082c540921dd362e09a9ff413862ab826308411b76ee35789",
+      "alternativeSignatures": [
+        "a755747462567003e5aa2b7bf01aa72af5143714e427ad043747b1fb54b1c440"
+      ],
+      "memberOf": [
+        "default"
+      ],
+      "justification": "Reference to an Android logging function.",
+      "createdDate": "2023-02-22 23:55:29Z"
+    },
+    "6d1fb3a483eb491710d6a09ed0b4bab47f13942d0c6fc744e6683614a66604ab": {
+      "signature": "6d1fb3a483eb491710d6a09ed0b4bab47f13942d0c6fc744e6683614a66604ab",
+      "alternativeSignatures": [
+        "a755747462567003e5aa2b7bf01aa72af5143714e427ad043747b1fb54b1c440"
+      ],
+      "memberOf": [
+        "default"
+      ],
+      "justification": "Reference to an Android logging function.",
+      "createdDate": "2023-02-22 23:55:29Z"
+    },
+    "b07e75fc8a506b94690dbd06877da06c1228e40e7deda3967f6b882b842f726d": {
+      "signature": "b07e75fc8a506b94690dbd06877da06c1228e40e7deda3967f6b882b842f726d",
+      "alternativeSignatures": [
+        "a755747462567003e5aa2b7bf01aa72af5143714e427ad043747b1fb54b1c440"
+      ],
+      "memberOf": [
+        "default"
+      ],
+      "justification": "Reference to an Android logging function.",
+      "createdDate": "2023-02-22 23:55:29Z"
+    },
+    "87d8313310c2dd42021844b95bdcb9121bf10036fea5b212b945e0732a456e5a": {
+      "signature": "87d8313310c2dd42021844b95bdcb9121bf10036fea5b212b945e0732a456e5a",
+      "alternativeSignatures": [
+        "a755747462567003e5aa2b7bf01aa72af5143714e427ad043747b1fb54b1c440"
+      ],
+      "memberOf": [
+        "default"
+      ],
+      "justification": "Reference to an Android logging function.",
+      "createdDate": "2023-02-22 23:55:29Z"
+    },
+    "8e5400e0233c8d887ad48bd8a48e8a7be5a579f9eefad521419b6df0828bbfac": {
+      "signature": "8e5400e0233c8d887ad48bd8a48e8a7be5a579f9eefad521419b6df0828bbfac",
+      "alternativeSignatures": [
+        "a755747462567003e5aa2b7bf01aa72af5143714e427ad043747b1fb54b1c440"
+      ],
+      "memberOf": [
+        "default"
+      ],
+      "justification": "Reference to an Android logging function.",
+      "createdDate": "2023-02-22 23:55:29Z"
+    },
+    "1b38e026fae90da4ae2fe9151c9c1ebd73c8b3c2c5f072ceae390a3ceec2fb97": {
+      "signature": "1b38e026fae90da4ae2fe9151c9c1ebd73c8b3c2c5f072ceae390a3ceec2fb97",
+      "alternativeSignatures": [
+        "a755747462567003e5aa2b7bf01aa72af5143714e427ad043747b1fb54b1c440"
+      ],
+      "memberOf": [
+        "default"
+      ],
+      "justification": "Reference to an Android logging function.",
+      "createdDate": "2023-02-22 23:55:29Z"
+    },
+    "b34b42aa41018376a31460c142f2ae910704725d9e9a4470f92b587df682369b": {
+      "signature": "b34b42aa41018376a31460c142f2ae910704725d9e9a4470f92b587df682369b",
+      "alternativeSignatures": [
+        "3901d031f3ac168bb1a84d06bb234355af514c59a0ed9da325b11a8861ff0b05"
+      ],
+      "memberOf": [
+        "default"
+      ],
+      "justification": "Matching against `aapt2` tool output.",
+      "createdDate": "2025-02-05 11:48:04Z"
+    },
+    "26d3e99b351de02627162b255b2513d833a0343a6f25064f35d7310eb07cf3ff": {
+      "signature": "26d3e99b351de02627162b255b2513d833a0343a6f25064f35d7310eb07cf3ff",
+      "alternativeSignatures": [
+        "d23c1bf667150310fd782f0ad92064dcf077226a64d9bf1dd6762ead152f7703"
+      ],
+      "memberOf": [
+        "default"
+      ],
+      "justification": "Reference to ffs(3) find first set bit function.",
+      "createdDate": "2025-02-10 19:44:17Z"
+    },
+    "a5555a74b0e940543802a63a6465b4d965eff4f6c858552813df633186794c45": {
+      "signature": "a5555a74b0e940543802a63a6465b4d965eff4f6c858552813df633186794c45",
+      "alternativeSignatures": [
+        "c5aa7148967f346e897301d8c424af20d89620c75ba9b966a0d42985102717bc"
+      ],
+      "memberOf": [
+        "default"
+      ],
+      "justification": "Reference to ffs(3) find first set bit function.",
+      "createdDate": "2025-02-05 11:48:04Z"
+    },
+    "fd1572e08e818076a2ceaab7a032186f70236fb82ab3663756d69632a9615329": {
+      "signature": "fd1572e08e818076a2ceaab7a032186f70236fb82ab3663756d69632a9615329",
+      "alternativeSignatures": [
+        "c5aa7148967f346e897301d8c424af20d89620c75ba9b966a0d42985102717bc"
+      ],
+      "memberOf": [
+        "default"
+      ],
+      "justification": "Reference to ffs(3) find first set bit function.",
+      "createdDate": "2025-02-05 11:48:04Z"
+    },
+    "2593da2393fe547b441ddfdfc614dd1448add1bf7d7ccc0696ab91f75fa6f29b": {
+      "signature": "2593da2393fe547b441ddfdfc614dd1448add1bf7d7ccc0696ab91f75fa6f29b",
+      "alternativeSignatures": [
+        "c5aa7148967f346e897301d8c424af20d89620c75ba9b966a0d42985102717bc"
+      ],
+      "memberOf": [
+        "default"
+      ],
+      "justification": "Reference to ffs(3) find first set bit function.",
+      "createdDate": "2025-02-05 11:48:04Z"
+    },
+    "1b604a2a60556cfca51c34a0e8d5f89174379ea1fc2598170147a7ce57a25fba": {
+      "signature": "1b604a2a60556cfca51c34a0e8d5f89174379ea1fc2598170147a7ce57a25fba",
+      "alternativeSignatures": [
+        "c5aa7148967f346e897301d8c424af20d89620c75ba9b966a0d42985102717bc"
+      ],
+      "memberOf": [
+        "default"
+      ],
+      "justification": "Reference to ffs(3) find first set bit function.",
+      "createdDate": "2025-02-05 11:48:04Z"
+    }
+  }
+}

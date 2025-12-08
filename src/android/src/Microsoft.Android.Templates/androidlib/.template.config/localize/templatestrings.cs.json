@@ -1,0 +1,6 @@
+﻿{
+  "author": "Microsoft",
+  "name": "Knihovna tříd Androidu",
+  "description": "Projekt pro vytvoření knihovny tříd .NET pro Android",
+  "symbols/supportedOSVersion/description": "Přepíše $(SupportedOSPlatformVersion) v projektu."
+}

@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>$(DotNetAndroidTargetFramework)</TargetFramework>
+    <RootNamespace>HelloLibrary</RootNamespace>
+  </PropertyGroup>
+</Project>

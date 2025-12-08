@@ -1,0 +1,31 @@
+Source: xamarin.android-oss
+Section: unknown
+Priority: optional
+Maintainer: Xamarin <hello@xamarin.com>
+Build-Depends: debhelper (>=9), cli-common-dev (>= 0.9~)
+Standards-Version: 3.9.6
+Homepage: https://www.xamarin.com/platform
+Vcs-Git: https://github.com/dotnet/android.git
+Vcs-Browser: https://github.com/dotnet/android
+
+Package: xamarin.android-oss
+Architecture: amd64
+Depends: msbuild, java8-sdk, ${cli:Depends}, ${misc:Depends}, ${shlibs:Depends}
+Description: .NET for Android libraries and runtime (host component)
+ The best way to build native Android apps.
+ .
+ * Ship native Android packages. .NET for Android uses just-in-time 
+   compilation for sophisticated runtime optimization of your app’s
+   performance, meaning your app is a native Android APK.
+ * Access any Android API, including new form factors. We bring 100% of 
+   Google’s Android APIs to C#, enhancing Java APIs with async support 
+   and .NET naming conventions so you feel right at home.
+ * Call existing Java code from C#. Use your existing Java code, 
+   frameworks, and custom controls in your Xamarin app using our 
+   automatic binding generator.
+ * Build Android Wear apps. With access to 100% API support for Android 
+   Wear, create full-featured applications capable of running on Android 
+   Wear devices.
+ * Stay up-to-date with Android. Xamarin stays up-to-date with the most 
+   current APIs from Google, so you can always use the latest features 
+   in your apps.

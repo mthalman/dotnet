@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>$(DotNetStableTargetFramework)</TargetFramework>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <OutputPath>..\..\bin\Build$(Configuration)</OutputPath>
+  </PropertyGroup>
+
+  <Import Project="..\..\Configuration.props" />
+
+  <ItemGroup>
+    <PackageReference Include="Mono.Options-PCL" Version="2.0.40" />
+    <Content Include="merge-configuration.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+</Project>

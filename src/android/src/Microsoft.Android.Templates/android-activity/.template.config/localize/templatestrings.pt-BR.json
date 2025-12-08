@@ -1,0 +1,7 @@
+﻿{
+  "author": "Microsoft",
+  "name": "Atividade do Android",
+  "description": "Uma classe de Atividade do Android",
+  "symbols/namespace/description": "namespace do código gerado",
+  "postActions/openInEditor/description": "Abre Activity1.cs no editor"
+}

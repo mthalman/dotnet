@@ -1,0 +1,29 @@
+<!--
+***********************************************************************************************
+sign-content.proj
+
+This project file is used to add runtime entitlements to any file that requires macOS signing
+and runtime hardening. ESRP signing does not yet support passing a runtime entitlements
+file alongside a file that needs runtime hardening, so we have to apply the entitlements
+ourself (using an empty signing identity) before passing these files to ESRP.
+***********************************************************************************************
+-->
+<Project Sdk="Microsoft.Build.NoTargets">
+
+  <Import Project="..\..\Configuration.props" />
+  <Import Project="create-installers.targets" />
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <!-- NOTE: Any file you want to sign must be under either $(OutDir) or $(IntermediateOutputPath). -->
+    <OutDir Condition=" '$(OutDir)' == '' ">$(MicrosoftAndroidSdkOutDir)</OutDir>
+  </PropertyGroup>
+
+  <Target Name="AddMachOEntitlements" >
+    <Exec Command="codesign -vvvv -f -s - -o runtime --entitlements &quot;$(DefaultRuntimeEntitlementsPath)&quot; &quot;%(_MSBuildFilesUnixSignAndHarden.Identity)&quot;" />
+    <Exec Command="codesign -vvvv -f -s - -o runtime --entitlements &quot;$(DefaultRuntimeEntitlementsPath)&quot; &quot;%(_BinUtilsFilesUnixSignAndHarden.Identity)&quot;" />
+  </Target>
+
+</Project>

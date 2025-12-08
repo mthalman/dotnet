@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.Build.NoTargets">
+ 
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <Configuration Condition="'$(Configuration)'==''">Debug</Configuration>
+    <OutputPath Condition="'$(OutputPath)'==''">bin\$(Configuration)</OutputPath>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <!-- There isn't an actual dependency here, but we can only build one 'gradlew' project
+         at a time, and adding <ProjectReference> between them ensures they run sequentially. -->
+    <ProjectReference Include="..\manifestmerger\manifestmerger.csproj" ReferenceOutputAssembly="False" />
+  </ItemGroup>
+
+  <Import Project="..\..\Configuration.props" />
+  <Import Project="r8.targets" />
+</Project>

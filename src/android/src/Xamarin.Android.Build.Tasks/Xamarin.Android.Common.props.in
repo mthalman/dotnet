@@ -1,0 +1,51 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<PropertyGroup>
+		<AndroidSdkBuildToolsVersion Condition=" '$(AndroidSdkBuildToolsVersion)' == '' ">@SDK_BUILD_TOOLS_VERSION@</AndroidSdkBuildToolsVersion>
+		<AndroidSdkPlatformToolsVersion Condition="'$(AndroidSdkPlatformToolsVersion)' == ''">@SDK_PLATFORM_TOOLS_VERSION@</AndroidSdkPlatformToolsVersion>
+		<AndroidSdkPlatformVersion Condition=" '$(AndroidSdkPlatformVersion)' == '' ">@SDK_PLATFORM_VERSION@</AndroidSdkPlatformVersion>
+
+		<AndroidCommandLineToolsVersion Condition=" '$(AndroidCommandLineToolsVersion)' == '' ">@COMMAND_LINE_TOOLS_VERSION@</AndroidCommandLineToolsVersion>
+		<AndroidSdkEmulatorVersion Condition="'$(AndroidSdkEmulatorVersion)' == ''"></AndroidSdkEmulatorVersion>
+		<AndroidNdkVersion Condition="'$(AndroidNdkVersion)' == ''">@NDK_PKG_REVISION@</AndroidNdkVersion>
+		<JavaSdkVersion Condition="'$(JavaSdkVersion)' == ''">@JAVA_SDK_VERSION@</JavaSdkVersion>
+		<MinimumSupportedJavaVersion Condition="'$(MinimumSupportedJavaVersion)' == ''">@MIN_SUPPORTED_JDK_VERSION@</MinimumSupportedJavaVersion>
+	</PropertyGroup>
+	<PropertyGroup>
+		<_JavaInteropReferences>Java.Interop;System.Runtime</_JavaInteropReferences>
+		<Debugger Condition=" '$(Debugger)' == '' ">Xamarin</Debugger>
+		<DependsOnSystemRuntime Condition=" '$(DependsOnSystemRuntime)' == '' ">true</DependsOnSystemRuntime>
+		<ImplicitlyExpandNETStandardFacades>false</ImplicitlyExpandNETStandardFacades>
+		<CopyNuGetImplementations Condition=" '$(CopyNuGetImplementations)' == ''">true</CopyNuGetImplementations>
+		<YieldDuringToolExecution Condition="'$(YieldDuringToolExecution)' == ''">true</YieldDuringToolExecution>
+		<LatestSupportedJavaVersion Condition="'$(LatestSupportedJavaVersion)' == ''">21.0.99</LatestSupportedJavaVersion>
+		<AndroidVersionCodePattern Condition=" '$(AndroidUseLegacyVersionCode)' != 'True' And '$(AndroidVersionCodePattern)' == '' ">{abi}{versionCode:D5}</AndroidVersionCodePattern>
+		<AndroidResourceGeneratorTargetName>UpdateGeneratedFiles</AndroidResourceGeneratorTargetName>
+		<AndroidUseApkSigner Condition=" '$(AndroidUseApkSigner)' == '' ">True</AndroidUseApkSigner>
+		<AndroidPackageNamingPolicy Condition=" '$(AndroidPackageNamingPolicy)' == '' ">LowercaseCrc64</AndroidPackageNamingPolicy>
+		<AndroidUseManagedDesignTimeResourceGenerator Condition=" '$(AndroidUseManagedDesignTimeResourceGenerator)' == '' And '$(OS)' != 'Windows_NT' ">False</AndroidUseManagedDesignTimeResourceGenerator>
+		<BundleToolVersion Condition="'$(BundleToolVersion)' == ''">@BUNDLETOOL_VERSION@</BundleToolVersion>
+		<_XamarinAndroidMSBuildDirectory>$(MSBuildThisFileDirectory)</_XamarinAndroidMSBuildDirectory>
+
+		<!-- NOTE: Compile Java code for Android against 1.8 -->
+		<!-- Invoke-customs are only supported starting with Android O (-min-api 26) -->
+		<JavacSourceVersion Condition=" '$(JavacSourceVersion)' == '' ">1.8</JavacSourceVersion>
+		<JavacTargetVersion Condition=" '$(JavacTargetVersion)' == '' ">1.8</JavacTargetVersion>
+
+		<!-- Enable nuget package conflict resolution -->
+		<ResolveAssemblyConflicts>true</ResolveAssemblyConflicts>
+	</PropertyGroup>
+        <ItemGroup>
+          <AndroidMinimumSupportedApiLevel Include="armeabi-v7a">
+            <ApiLevel>@NDK_ARMEABI_V7_API@</ApiLevel>
+          </AndroidMinimumSupportedApiLevel>
+          <AndroidMinimumSupportedApiLevel Include="arm64-v8a">
+            <ApiLevel>@NDK_ARM64_V8A_API@</ApiLevel>
+          </AndroidMinimumSupportedApiLevel>
+          <AndroidMinimumSupportedApiLevel Include="x86">
+            <ApiLevel>@NDK_X86_API@</ApiLevel>
+          </AndroidMinimumSupportedApiLevel>
+          <AndroidMinimumSupportedApiLevel Include="x86_64">
+            <ApiLevel>@NDK_X86_64_API@</ApiLevel>
+          </AndroidMinimumSupportedApiLevel>
+        </ItemGroup>
+</Project>

@@ -1,0 +1,51 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <UsingTask AssemblyFile="$(PrepTasksAssembly)" TaskName="Xamarin.Android.BuildTools.PrepTasks.DownloadUri" />
+  <PropertyGroup>
+    <_Destination>$(MicrosoftAndroidSdkOutDir)</_Destination>
+    <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
+    <_BundleToolDownloadLocation>$(AndroidToolchainCacheDirectory)\bundletool-all-$(XABundleToolVersion).jar</_BundleToolDownloadLocation>
+    <_BundleToolCopyLocation>$(AndroidToolchainCacheDirectory)\bundletool-all-$(XABundleToolVersion)-copy.jar</_BundleToolCopyLocation>
+    <_BundleToolExtractLocation>$(AndroidToolchainCacheDirectory)\bundletool-unzip-$(XABundleToolVersion)</_BundleToolExtractLocation>
+    <_JarPath Condition=" '$(JavaSdkDirectory)' != '' ">$(JavaSdkDirectory)/bin/jar</_JarPath>
+    <_JarPath Condition=" '$(_JarPath)' == '' ">jar</_JarPath>
+  </PropertyGroup>
+
+  <Target Name="_DownloadBundleTool">
+    <DownloadUri
+        SourceUris="https://github.com/google/bundletool/releases/download/$(XABundleToolVersion)/bundletool-all-$(XABundleToolVersion).jar"
+        DestinationFiles="$(_BundleToolDownloadLocation)"
+    />
+  </Target>
+
+  <Target Name="_StripAndCopyBundleTool"
+      BeforeTargets="Build"
+      DependsOnTargets="_DownloadBundleTool"
+      Inputs="$(_BundleToolDownloadLocation)"
+      Outputs="$(_Destination)bundletool.jar" >
+    <!-- Strip unused jna content and aapt2 from bundletool.jar, as we pass it our own path to aapt2.
+          This simplifies signing/hardening and reduces our installation footprint slightly. -->
+    <RemoveDir Directories="$(_BundleToolExtractLocation)" />
+    <MakeDir Directories="$(_BundleToolExtractLocation)" />
+    <Copy
+        SourceFiles="$(_BundleToolDownloadLocation)"
+        DestinationFiles="$(_BundleToolCopyLocation)"
+        SkipUnchangedFiles="True"
+    />
+    <Exec WorkingDirectory="$(_BundleToolExtractLocation)" Command="$(_JarPath) -xf &quot;$(_BundleToolCopyLocation)&quot;" />
+    <Delete Files="$(_BundleToolCopyLocation)" />
+    <Delete Files="$(_BundleToolExtractLocation)\linux\aapt2;$(_BundleToolExtractLocation)\macos\aapt2;$(_BundleToolExtractLocation)\windows\aapt2.exe" />
+    <RemoveDir Directories="$(_BundleToolExtractLocation)\com\sun\jna" />
+    <Exec WorkingDirectory="$(_BundleToolExtractLocation)" Command="$(_JarPath) -cmf META-INF/MANIFEST.MF &quot;$(_BundleToolCopyLocation)&quot; ." />
+    <RemoveDir Directories="$(_BundleToolExtractLocation)" />
+    <Copy
+        SourceFiles="$(_BundleToolCopyLocation)"
+        DestinationFiles="$(_Destination)bundletool.jar"
+        SkipUnchangedFiles="True"
+    />
+  </Target>
+
+  <Target Name="_CleanBundleTool" BeforeTargets="Clean">
+    <Delete Files="$(_BundleToolDownloadLocation);$(_Destination)bundletool.jar" />
+  </Target>
+
+</Project>

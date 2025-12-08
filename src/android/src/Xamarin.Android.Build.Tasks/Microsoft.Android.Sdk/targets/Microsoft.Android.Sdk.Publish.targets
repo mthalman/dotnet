@@ -1,0 +1,34 @@
+<!--
+***********************************************************************************************
+Microsoft.Android.Sdk.Publish.targets
+
+This file contains the implementation for 'dotnet publish'.
+
+***********************************************************************************************
+-->
+<Project>
+
+  <PropertyGroup>
+    <_PublishDependsOn>
+      Build;
+      PrepareForPublish;
+      _CalculateAndroidFilesToPublish;
+      CopyFilesToPublishDirectory;
+    </_PublishDependsOn>
+  </PropertyGroup>
+
+  <Target Name="Publish" DependsOnTargets="$(_PublishDependsOn)" />
+
+  <Target Name="_CalculateAndroidFilesToPublish">
+    <ItemGroup>
+      <_AllPackageFormats Include="$(AndroidPackageFormat);$(AndroidPackageFormats)" />
+      <_AndroidPackageFormats Include="@(_AllPackageFormats->Distinct())" />
+      <_AndroidFilesToPublish Include="$(OutputPath)*.%(_AndroidPackageFormats.Identity)" />
+      <_AndroidFilesToPublish Include="$(AndroidProguardMappingFile)" Condition="Exists ('$(AndroidProguardMappingFile)')" />
+      <_AndroidFilesToPublish Include="$(_GenerateResourceDesignerAssemblyOutput)" Condition="Exists('$(_GenerateResourceDesignerAssemblyOutput)')" />
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" />
+      <ResolvedFileToPublish Include="@(_AndroidFilesToPublish)" RelativePath="%(FileName)%(Extension)" />
+    </ItemGroup>
+  </Target>
+
+</Project>

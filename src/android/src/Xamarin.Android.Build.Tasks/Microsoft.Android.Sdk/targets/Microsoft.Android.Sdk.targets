@@ -1,0 +1,38 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <PropertyGroup>
+    <MicrosoftAndroidSdkTargetsImported>true</MicrosoftAndroidSdkTargetsImported>
+    <!-- Normalize casing -->
+    <TargetPlatformIdentifier>Android</TargetPlatformIdentifier>
+    <_XamarinAndroidBuildTasksAssembly>..\tools\Xamarin.Android.Build.Tasks.dll</_XamarinAndroidBuildTasksAssembly>
+    <UsingAndroidNETSdk>true</UsingAndroidNETSdk>
+    <!-- Enable nuget package conflict resolution -->
+    <ResolveAssemblyConflicts>true</ResolveAssemblyConflicts>
+    <_AndroidResourceDesigner>Resource.designer.cs</_AndroidResourceDesigner>
+    <AfterMicrosoftNETSdkTargets>$(AfterMicrosoftNETSdkTargets);$(MSBuildThisFileDirectory)Microsoft.Android.Sdk.After.targets</AfterMicrosoftNETSdkTargets>
+  </PropertyGroup>
+
+  <!-- Default References -->
+  <ItemGroup Condition=" '$(DisableImplicitFrameworkReferences)' != 'true' ">
+    <FrameworkReference
+        Include="Microsoft.Android"
+        IsImplicitlyDefined="true"
+        Pack="false"
+        PrivateAssets="All"
+    />
+    <FrameworkReference
+        Include="Microsoft.Android.Runtimes"
+        IsImplicitlyDefined="true"
+        Pack="false"
+        PrivateAssets="All"
+    />
+  </ItemGroup>
+
+  <Import Project="Microsoft.Android.Sdk.SupportedPlatforms.targets" />
+  <Import Project="Microsoft.Android.Sdk.BundledVersions.targets" />
+  <Import Project="Microsoft.Android.Sdk.DefaultProperties.targets" />
+  <Import Project="$(MSBuildThisFileDirectory)..\tools\Xamarin.Android.Common.Debugging.props"
+      Condition="Exists('$(MSBuildThisFileDirectory)..\tools\Xamarin.Android.Common.Debugging.props') And '$(DesignTimeBuild)' != 'true' "/>
+  <Import Project="Microsoft.Android.Sdk.$(_AndroidRuntime).targets" Condition=" '$(_AndroidRuntime)' != '' " />
+
+</Project>

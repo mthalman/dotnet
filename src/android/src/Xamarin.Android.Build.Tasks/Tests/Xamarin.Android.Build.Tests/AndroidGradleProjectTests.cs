@@ -1,0 +1,578 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+
+using Microsoft.Build.Framework;
+
+using NUnit.Framework;
+using Xamarin.Android.Tasks;
+using Xamarin.Android.Tools;
+using Xamarin.ProjectTools;
+
+namespace Xamarin.Android.Build.Tests
+{
+	[TestFixture]
+	public class AndroidGradleProjectTests : BaseTest
+	{
+		string GradleTestProjectDir = string.Empty;
+
+		[SetUp]
+		public void GradleTestSetUp ()
+		{
+			GradleTestProjectDir = Path.Combine (Root, "temp", "gradle", TestName);
+			if (Directory.Exists (GradleTestProjectDir))
+				Directory.Delete (GradleTestProjectDir, recursive: true);
+		}
+
+		[TearDown]
+		public void GradleTestTearDown ()
+		{
+			if (TestContext.CurrentContext.Result.Outcome.Status == NUnit.Framework.Interfaces.TestStatus.Passed ||
+				TestContext.CurrentContext.Result.Outcome.Status == NUnit.Framework.Interfaces.TestStatus.Skipped) {
+				try {
+					if (Directory.Exists (GradleTestProjectDir))
+						Directory.Delete (GradleTestProjectDir, recursive: true);
+				} catch (Exception ex) {
+					// This happens on CI occasionally, let's not fail the test
+					TestContext.Out.WriteLine ($"Failed to delete '{GradleTestProjectDir}': {ex}");
+				}
+			}
+		}
+
+		[Test]
+		public void BuildApp ([Values] AndroidRuntime runtime)
+		{
+			bool isRelease = runtime == AndroidRuntime.NativeAOT;
+			if (IgnoreUnsupportedConfiguration (runtime, release: isRelease)) {
+				return;
+			}
+
+			var gradleProject = AndroidGradleProject.CreateDefault (GradleTestProjectDir, isApplication: true);
+			var moduleName = gradleProject.Modules.First ().Name;
+
+			var proj = new XamarinAndroidApplicationProject {
+				IsRelease = isRelease,
+				OtherBuildItems = {
+					new BuildItem (KnownProperties.AndroidGradleProject, gradleProject.BuildFilePath) {
+						Metadata = {
+							{ "ModuleName", moduleName },
+							{ "Configuration", "Release" },
+						},
+					},
+				},
+			};
+			proj.SetRuntime (runtime);
+
+			using var builder = CreateApkBuilder ();
+			Assert.IsTrue (builder.Build (proj), "Build should have succeeded.");
+			FileAssert.Exists (Path.Combine (Root, builder.ProjectDirectory, proj.OutputPath, $"{moduleName}-release-unsigned.apk"));
+		}
+
+		static IEnumerable<object[]> Get_AGPMetadataTestSources ()
+		{
+			var ret = new List<object[]> ();
+
+			foreach (AndroidRuntime runtime in Enum.GetValues (typeof (AndroidRuntime))) {
+				AddTestData (
+					bind: true,
+					configuration: "Release",
+					refOutputs: true,
+					runtime: runtime
+				);
+				AddTestData (
+					bind: true,
+					configuration: "Debug",
+					refOutputs: true,
+					runtime: runtime
+				);
+				AddTestData (
+					bind: false,
+					configuration: "Release",
+					refOutputs: true,
+					runtime: runtime
+				);
+				AddTestData (
+					bind: true,
+					configuration: "Debug",
+					refOutputs: false,
+					runtime: runtime
+				);
+			}
+
+			return ret;
+
+			void AddTestData (bool bind, string configuration, bool refOutputs, AndroidRuntime runtime)
+			{
+				ret.Add (new object[] {
+					bind,
+					configuration,
+					refOutputs,
+					runtime,
+				});
+			}
+		}
+
+		[Test]
+		[TestCaseSource (nameof (Get_AGPMetadataTestSources))]
+		public void BindLibrary (bool bind, string configuration, bool refOutputs, AndroidRuntime runtime)
+		{
+			bool isRelease = runtime == AndroidRuntime.NativeAOT;
+			if (IgnoreUnsupportedConfiguration (runtime, release: isRelease)) {
+				return;
+			}
+
+			var gradleProject = AndroidGradleProject.CreateDefault (GradleTestProjectDir);
+			var moduleName = gradleProject.Modules.First ().Name;
+
+			var proj = new XamarinAndroidBindingProject {
+				IsRelease = isRelease,
+				Jars = {
+					new BuildItem (KnownProperties.AndroidGradleProject, gradleProject.BuildFilePath) {
+						Metadata = {
+							{ "ModuleName", moduleName },
+							{ "Bind", bind.ToString ()},
+							{ "Configuration", configuration },
+							{ "CreateAndroidLibrary", refOutputs.ToString () },
+						},
+					},
+				},
+				Sources = {
+					new BuildItem.Source ("Foo.cs") {
+						TextContent = () => @$"public class Foo {{ public Foo () {{ System.Console.WriteLine (GradleTest.{moduleName}Class.GetString(""TestString"")); }} }}"
+					},
+				},
+				MetadataXml = $@"<metadata><attr path=""/api/package[@name='{gradleProject.Modules.First ().PackageName}']"" name=""managedName"">GradleTest</attr></metadata>",
+			};
+			proj.SetRuntime (runtime);
+
+			using var builder = CreateDllBuilder ();
+			builder.Verbosity = LoggerVerbosity.Detailed;
+			builder.ThrowOnBuildFailure = false;
+			var buildResult = builder.Build (proj);
+
+			if (refOutputs && bind) {
+				Assert.IsTrue (buildResult, "Build should have succeeded.");
+				// Need to lowercase configuration name or the test will fail on case-sensitive systems
+				FileAssert.Exists (Path.Combine (Root, builder.ProjectDirectory, proj.OutputPath, $"{moduleName}-{configuration.ToLowerInvariant ()}.aar"));
+				Assert.IsFalse (builder.Output.IsTargetSkipped ("GenerateBindings"), "The 'GenerateBindings' target should run when Bind=true");
+			} else {
+				Assert.IsFalse (buildResult, "Build should have failed.");
+			}
+		}
+
+		[Test]
+		public void BindPackLibrary ([Values] bool packGradleRef, [Values] AndroidRuntime runtime)
+		{
+			const bool isRelease = true;
+			if (IgnoreUnsupportedConfiguration (runtime, release: isRelease)) {
+				return;
+			}
+
+			var dotnetVersion = "net10.0";
+			var apiLevel = XABuildConfig.AndroidDefaultTargetDotnetApiLevel;
+			var gradleProject = AndroidGradleProject.CreateDefault (GradleTestProjectDir);
+			var moduleName = gradleProject.Modules.First ().Name;
+
+			var proj = new XamarinAndroidLibraryProject {
+				IsRelease = isRelease,
+				EnableDefaultItems = true,
+				OtherBuildItems = {
+					new BuildItem (KnownProperties.AndroidGradleProject, gradleProject.BuildFilePath) {
+						Metadata = {
+							{ "ModuleName", moduleName },
+							{ "Pack", packGradleRef.ToString () },
+						},
+					},
+				}
+			};
+			proj.SetRuntime (runtime);
+
+			using var builder = CreateDllBuilder ();
+			builder.Save (proj);
+
+			var dotnet = new DotNetCLI (Path.Combine (Root, builder.ProjectDirectory, proj.ProjectFilePath));
+			Assert.IsTrue (dotnet.Pack (parameters: new [] { "Configuration=Release" }), "`dotnet pack` should succeed");
+			FileAssert.Exists (Path.Combine (Root, builder.ProjectDirectory, proj.OutputPath, $"{moduleName}-release.aar"));
+
+			var nupkgPath = Path.Combine (Root, builder.ProjectDirectory, proj.OutputPath, $"{proj.ProjectName}.1.0.0.nupkg");
+			FileAssert.Exists (nupkgPath);
+			using var nupkg = ZipHelper.OpenZip (nupkgPath);
+			nupkg.AssertContainsEntry (nupkgPath, $"lib/{dotnetVersion}-android{apiLevel}/{proj.ProjectName}.dll");
+			nupkg.AssertContainsEntry (nupkgPath, $"lib/{dotnetVersion}-android{apiLevel}/{proj.ProjectName}.aar");
+			if (packGradleRef) {
+				nupkg.AssertContainsEntry (nupkgPath, $"lib/{dotnetVersion}-android{apiLevel}/{moduleName}-release.aar");
+			} else {
+				nupkg.AssertDoesNotContainEntry (nupkgPath, $"lib/{dotnetVersion}-android{apiLevel}/{moduleName}-release.aar");
+			}
+		}
+
+		[Test]
+		public void BuildIncremental ([Values] AndroidRuntime runtime)
+		{
+			bool isRelease = runtime == AndroidRuntime.NativeAOT;
+			if (IgnoreUnsupportedConfiguration (runtime, release: isRelease)) {
+				return;
+			}
+
+			var gradleProject = AndroidGradleProject.CreateDefault (GradleTestProjectDir);
+			var gradleModule = gradleProject.Modules.First ();
+
+			var proj = new XamarinAndroidLibraryProject {
+				IsRelease = isRelease,
+				OtherBuildItems = {
+					new BuildItem (KnownProperties.AndroidGradleProject, gradleProject.BuildFilePath) {
+						Metadata = {
+							{ "ModuleName", gradleModule.Name },
+						},
+					},
+				},
+			};
+			proj.SetRuntime (runtime);
+
+			using var builder = CreateDllBuilder ();
+			builder.Verbosity = LoggerVerbosity.Detailed;
+			Assert.IsTrue (builder.Build (proj), "First build should have succeeded.");
+			var outputAar = Path.Combine (Root, builder.ProjectDirectory, proj.OutputPath, $"{gradleModule.Name}-release.aar");
+			FileAssert.Exists (outputAar);
+			var outputAarFirstWriteTime = File.GetLastWriteTime (outputAar);
+			var packagedManifestContent = System.Text.Encoding.UTF8.GetString (ZipHelper.ReadFileFromZip (outputAar, "AndroidManifest.xml"));
+			StringAssert.Contains (@"uses-sdk android:minSdkVersion=""21""", packagedManifestContent);
+
+			// Build again, _BuildAndroidGradleProjects should be skipped
+			builder.BuildLogFile = "build2.log";
+			Assert.IsTrue (builder.Build (proj), "Second build should have succeeded.");
+			Assert.IsTrue (builder.Output.IsTargetSkipped ("_BuildAndroidGradleProjects"), "The '_BuildAndroidGradleProjects' target should be skipped on incremental build");
+			FileAssert.Exists (outputAar);
+			var outputAarSecondWriteTime = File.GetLastWriteTime (outputAar);
+			Assert.IsTrue (outputAarFirstWriteTime == outputAarSecondWriteTime, $"Expected {outputAar} write time to be '{outputAarFirstWriteTime}', but was '{outputAarSecondWriteTime}'");
+
+			// Update gradle project, _BuildAndroidGradleProjects should run and outputs should be updated
+			builder.BuildLogFile = "build3.log";
+			gradleModule.MinSdk = 30;
+			gradleModule.WriteGradleBuildFile ();
+			Assert.IsTrue (builder.Build (proj), "Third build should have succeeded.");
+			Assert.IsFalse (builder.Output.IsTargetSkipped ("_BuildAndroidGradleProjects"), "The '_BuildAndroidGradleProjects' target should run on partial rebuild");
+			FileAssert.Exists (outputAar);
+			var outputAarThirdWriteTime = File.GetLastWriteTime (outputAar);
+			Assert.IsTrue (outputAarThirdWriteTime > outputAarFirstWriteTime, $"Expected '{outputAar}' write time of '{outputAarThirdWriteTime}' to be greater than first write '{outputAarFirstWriteTime}'");
+			packagedManifestContent = System.Text.Encoding.UTF8.GetString (ZipHelper.ReadFileFromZip (outputAar, "AndroidManifest.xml"));
+			StringAssert.Contains (@"uses-sdk android:minSdkVersion=""30""", packagedManifestContent);
+		}
+
+		[Test]
+		public void BuildCustomOutputPaths ([Values] AndroidRuntime runtime)
+		{
+			bool isRelease = runtime == AndroidRuntime.NativeAOT;
+			if (IgnoreUnsupportedConfiguration (runtime, release: isRelease)) {
+				return;
+			}
+
+			var gradleProject = AndroidGradleProject.CreateDefault (GradleTestProjectDir);
+			var moduleName = gradleProject.Modules.First ().Name;
+
+			using var builder = CreateDllBuilder ();
+			var customOutputPathsRoot = Path.Combine (Root, builder.ProjectDirectory, "customout");
+			var gradleOutputPath = Path.Combine (customOutputPathsRoot, "gradleoutdir");
+
+			var proj = new XamarinAndroidLibraryProject {
+				IsRelease = true,
+				OtherBuildItems = {
+					new BuildItem (KnownProperties.AndroidGradleProject, gradleProject.BuildFilePath) {
+						Metadata = {
+							{ "ModuleName", moduleName },
+							{ "OutputPath", gradleOutputPath },
+						},
+					},
+				},
+				OutputPath = Path.Combine (customOutputPathsRoot, "outdir"),
+				IntermediateOutputPath = Path.Combine (customOutputPathsRoot, "intermediatedir"),
+			};
+			proj.SetRuntime (runtime);
+
+			Assert.IsTrue (builder.Build (proj), "Build should have succeeded.");
+			FileAssert.Exists (Path.Combine (proj.OutputPath, $"{moduleName}-release.aar"));
+		}
+
+		[Test]
+		public void BuildArtifactsOutputPaths ([Values] AndroidRuntime runtime)
+		{
+			bool isRelease = runtime == AndroidRuntime.NativeAOT;
+			if (IgnoreUnsupportedConfiguration (runtime, release: isRelease)) {
+				return;
+			}
+
+			var gradleProject = AndroidGradleProject.CreateDefault (GradleTestProjectDir);
+			var moduleName = gradleProject.Modules.First ().Name;
+
+			using var builder = CreateDllBuilder ();
+			var customOutputPathsRoot = Path.Combine (Root, builder.ProjectDirectory, "customout");
+
+			var proj = new XamarinAndroidLibraryProject {
+				IsRelease = isRelease,
+				OtherBuildItems = {
+					new BuildItem (KnownProperties.AndroidGradleProject, gradleProject.BuildFilePath) {
+						Metadata = {
+							{ "ModuleName", moduleName },
+						},
+					},
+				},
+				Imports = {
+					new Import ("Directory.Build.props") {
+						TextContent = () =>
+$@"<Project>
+	<PropertyGroup>
+		<UseArtifactsOutput>true</UseArtifactsOutput>
+		<ArtifactsPath>{customOutputPathsRoot}</ArtifactsPath>
+	</PropertyGroup>
+</Project>"
+					},
+				},
+				OutputPath = "",
+				IntermediateOutputPath = "",
+			};
+			proj.SetRuntime (runtime);
+
+			Assert.IsTrue (builder.Build (proj), "Build should have succeeded.");
+
+			string binPath = runtime switch {
+				// TODO: NativeAOT ignores the custom output path
+				AndroidRuntime.NativeAOT => Path.Combine (Root, builder.ProjectDirectory, "bin", "Debug"),
+				_ => Path.Combine (customOutputPathsRoot, "bin", proj.ProjectName, "debug")
+			};
+
+			FileAssert.Exists (Path.Combine (binPath, $"{moduleName}-release.aar"));
+		}
+
+		[Test]
+		public void BuildMultipleModules ([Values] AndroidRuntime runtime)
+		{
+			bool isRelease = runtime == AndroidRuntime.NativeAOT;
+			if (IgnoreUnsupportedConfiguration (runtime, release: isRelease)) {
+				return;
+			}
+
+			var gradleProject = new AndroidGradleProject (GradleTestProjectDir) {
+
+				Modules = {
+					new AndroidGradleModule (Path.Combine (GradleTestProjectDir, "TestAppModule")) {
+						IsApplication = true,
+					},
+					new AndroidGradleModule (Path.Combine (GradleTestProjectDir, "TestLibModule")),
+				},
+			};
+			gradleProject.Create ();
+
+			var proj = new XamarinAndroidLibraryProject {
+				IsRelease = isRelease,
+				OtherBuildItems = {
+					new BuildItem (KnownProperties.AndroidGradleProject, gradleProject.BuildFilePath) {
+						Metadata = {
+							{ "ModuleName", "TestAppModule" },
+							{ "Configuration", "Debug" },
+						},
+					},
+					new BuildItem (KnownProperties.AndroidGradleProject, gradleProject.BuildFilePath) {
+						Metadata = {
+							{ "ModuleName", "TestLibModule" },
+							{ "Configuration", "Release" },
+						},
+					},
+				},
+			};
+			proj.SetRuntime (runtime);
+
+			using var builder = CreateDllBuilder ();
+			Assert.IsTrue (builder.Build (proj), "Build should have succeeded.");
+			FileAssert.Exists (Path.Combine (Root, builder.ProjectDirectory, proj.OutputPath, "TestLibModule-release.aar"));
+		}
+
+		[Test]
+		public void BuildMultipleLibraries ([Values] AndroidRuntime runtime)
+		{
+			bool isRelease = runtime == AndroidRuntime.NativeAOT;
+			if (IgnoreUnsupportedConfiguration (runtime, release: isRelease)) {
+				return;
+			}
+
+			var gradleProject = new AndroidGradleProject (Path.Combine (GradleTestProjectDir, "First")) {
+				Modules = {
+					new AndroidGradleModule (Path.Combine (GradleTestProjectDir, "First", "FirstModule")),
+				},
+			};
+			gradleProject.Create ();
+			var gradleProject2 = new AndroidGradleProject (Path.Combine (GradleTestProjectDir, "Second")) {
+				Modules = {
+					new AndroidGradleModule (Path.Combine (GradleTestProjectDir, "Second", "SecondModule")),
+				},
+			};
+			gradleProject2.Create ();
+
+			var proj = new XamarinAndroidLibraryProject {
+				IsRelease = isRelease,
+				OtherBuildItems = {
+					new BuildItem (KnownProperties.AndroidGradleProject, gradleProject.BuildFilePath) {
+						Metadata = {
+							{ "ModuleName", gradleProject.Modules.First ().Name },
+							{ "Configuration", "Debug" },
+						},
+					},
+					new BuildItem (KnownProperties.AndroidGradleProject, gradleProject2.BuildFilePath) {
+						Metadata = {
+							{ "ModuleName", gradleProject2.Modules.First ().Name },
+							{ "Configuration", "Release" },
+						},
+					},
+				},
+			};
+			proj.SetRuntime (runtime);
+
+			using var builder = CreateDllBuilder ();
+			Assert.IsTrue (builder.Build (proj), "Build should have succeeded.");
+			FileAssert.Exists (Path.Combine (Root, builder.ProjectDirectory, proj.OutputPath, "FirstModule-debug.aar"));
+			FileAssert.Exists (Path.Combine (Root, builder.ProjectDirectory, proj.OutputPath, "SecondModule-release.aar"));
+		}
+
+		[Test]
+		public void InvalidItemRefError ([Values] AndroidRuntime runtime)
+		{
+			bool isRelease = runtime == AndroidRuntime.NativeAOT;
+			if (IgnoreUnsupportedConfiguration (runtime, release: isRelease)) {
+				return;
+			}
+
+			var invalidProjectPath = Path.Combine (Root, "doesnotexist");
+			var proj = new XamarinAndroidLibraryProject {
+				IsRelease = isRelease,
+				OtherBuildItems = {
+					new BuildItem (KnownProperties.AndroidGradleProject, Path.Combine (invalidProjectPath, "build.gradle.kts")),
+				},
+			};
+			proj.SetRuntime (runtime);
+
+			using var builder = CreateDllBuilder ();
+			builder.ThrowOnBuildFailure = false;
+			Assert.IsFalse (builder.Build (proj), "Build should have failed.");
+			StringAssertEx.Contains ("error XAGRDL1000", builder.LastBuildOutput);
+			StringAssertEx.Contains ($"Executable 'gradlew' not found in project directory '{invalidProjectPath}{Path.DirectorySeparatorChar}'. Please ensure the path to your Gradle project folder is correct", builder.LastBuildOutput);
+		}
+
+		[Test]
+		public void InvalidModuleNameError ([Values] AndroidRuntime runtime)
+		{
+			bool isRelease = runtime == AndroidRuntime.NativeAOT;
+			if (IgnoreUnsupportedConfiguration (runtime, release: isRelease)) {
+				return;
+			}
+
+			var gradleProject = AndroidGradleProject.CreateDefault (GradleTestProjectDir);
+			var invalidModuleName = "Invalid";
+			var proj = new XamarinAndroidLibraryProject {
+				IsRelease = isRelease,
+				OtherBuildItems = {
+					 new BuildItem (KnownProperties.AndroidGradleProject, gradleProject.BuildFilePath) {
+						Metadata = {
+							{ "ModuleName", invalidModuleName },
+						},
+					 },
+				 },
+			};
+			proj.SetRuntime (runtime);
+
+			using var builder = CreateDllBuilder ();
+			builder.ThrowOnBuildFailure = false;
+			Assert.IsFalse (builder.Build (proj), "Build should have failed.");
+			StringAssertEx.Contains ("error XAGRDL0000", builder.LastBuildOutput);
+			StringAssertEx.Contains ($"'{invalidModuleName}' not found in root project '{TestName}'", builder.LastBuildOutput);
+		}
+
+		[Test]
+		public void BindFacebook ([Values] AndroidRuntime runtime)
+		{
+			bool isRelease = runtime == AndroidRuntime.NativeAOT;
+			if (IgnoreUnsupportedConfiguration (runtime, release: isRelease)) {
+				return;
+			}
+
+			var moduleName = "Library";
+			var gradleModule = 	new AndroidGradleModule (Path.Combine (GradleTestProjectDir, moduleName));
+			gradleModule.PackageName = "com.microsoft.mauifacebook";
+			gradleModule.BuildGradleFileContent = $@"
+plugins {{
+    id(""com.android.library"")
+}}
+android {{
+    namespace = ""{gradleModule.PackageName}""
+    compileSdk = {XABuildConfig.AndroidDefaultTargetDotnetApiLevel.Major}
+    defaultConfig {{
+        minSdk = 21
+    }}
+}}
+dependencies {{
+    implementation(""androidx.appcompat:appcompat:1.6.1"")
+    implementation(""com.google.android.material:material:1.11.0"")
+    implementation(""com.facebook.android:facebook-android-sdk:latest.release"")
+}}
+";
+			gradleModule.JavaSources.Add (new AndroidItem.AndroidJavaSource ("FacebookSdk.java") {
+				TextContent = () => $@"
+package com.microsoft.mauifacebook;
+import android.app.Activity;
+import android.app.Application;
+import android.util.Log;
+import com.facebook.LoggingBehavior;
+import com.facebook.appevents.AppEventsLogger;
+public class FacebookSdk {{
+    static AppEventsLogger _logger;
+    public static void initializeSDK(Activity activity, Boolean isDebug) {{
+        Application application = activity.getApplication();
+        com.facebook.FacebookSdk.sdkInitialize(application);
+        com.facebook.FacebookSdk.addLoggingBehavior(LoggingBehavior.APP_EVENTS);
+        AppEventsLogger.activateApp(application);
+        _logger = AppEventsLogger.newLogger(activity);
+    }}
+    public static void logEvent(String eventName) {{
+        _logger.logEvent(eventName);
+    }}
+}}
+",
+			});
+
+			var gradleProject = new AndroidGradleProject (GradleTestProjectDir) {
+				Modules = {
+					gradleModule,
+				},
+			};
+			gradleProject.Create ();
+
+			var proj = new XamarinAndroidBindingProject {
+				IsRelease = isRelease,
+				Jars = {
+					new BuildItem (KnownProperties.AndroidGradleProject, gradleProject.BuildFilePath) {
+						Metadata = {
+							{ "ModuleName", moduleName },
+						},
+					},
+				},
+				Sources = {
+					new BuildItem.Source ("Foo.cs") {
+						TextContent = () => @$"
+public class Foo {{
+	public void TestFacebook () {{
+		Facebook.FacebookSdk.InitializeSDK((Android.App.Activity)Android.App.Application.Context, Java.Lang.Boolean.True);
+		Facebook.FacebookSdk.LogEvent(""TestFacebook"");
+	}}
+}}"
+					},
+				},
+				MetadataXml = $@"<metadata><attr path=""/api/package[@name='{gradleModule.PackageName}']"" name=""managedName"">Facebook</attr></metadata>",
+			};
+			proj.SetRuntime (runtime);
+
+			using var builder = CreateDllBuilder ();
+			Assert.IsTrue (builder.Build (proj), "Build should have succeeded.");
+			FileAssert.Exists (Path.Combine (Root, builder.ProjectDirectory, proj.OutputPath, $"{moduleName}-release.aar"));
+		}
+
+	}
+}

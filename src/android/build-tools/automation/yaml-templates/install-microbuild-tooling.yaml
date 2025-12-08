@@ -1,0 +1,31 @@
+parameters:
+  condition: succeeded()
+
+steps:
+- task: NuGetAuthenticate@1
+  displayName: authenticate with azure artifacts
+  inputs:
+    forceReinstallCredentialProvider: true
+  condition: ${{ parameters.condition }}
+
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: 3.11
+
+# ESRP signing requires minimum azure client version 2.8.0
+- template: azure-tools/az-client-update.yml@yaml-templates
+  parameters:
+    version: '2.8.0'
+    condition: and(${{ parameters.condition }}, eq(variables['agent.os'], 'Darwin'))
+
+- task: MicroBuildSigningPlugin@4
+  displayName: install signing plugin
+  condition: ${{ parameters.condition }}
+  inputs:
+    ${{ if and(startsWith(variables['Build.SourceBranch'], 'refs/heads/release/'), ne(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.DefinitionName'], 'Xamarin.Android')) }}:
+      signType: Real
+    ${{ else }}:
+      signType: Test
+    azureSubscription: MicroBuild Signing Task (DevDiv)
+  env:
+    SYSTEM_ACCESSTOKEN: $(System.AccessToken)

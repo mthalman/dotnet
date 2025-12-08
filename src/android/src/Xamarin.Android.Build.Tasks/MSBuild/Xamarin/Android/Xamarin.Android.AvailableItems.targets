@@ -1,0 +1,90 @@
+<!--
+***********************************************************************************************
+Xamarin.Android.AvailableItems.targets
+
+This file is imported by every project type to setup @(AvailableItemName).
+This item group populates the Build Action drop-down in IDEs.
+
+***********************************************************************************************
+-->
+<Project>
+
+  <!-- Not legacy binding projects -->
+  <ItemGroup>
+    <AvailableItemName Include="AndroidAotProfile" />
+    <AvailableItemName Include="AndroidAsset" />
+    <AvailableItemName Include="AndroidEnvironment" />
+    <AvailableItemName Include="AndroidExternalJavaLibrary" />
+    <AvailableItemName Include="AndroidInterfaceDescription" />
+    <AvailableItemName Include="AndroidJavaSource" />
+    <AvailableItemName Include="AndroidLibrary" />
+    <AvailableItemName Include="AndroidLintConfig" />
+    <AvailableItemName Include="AndroidResourceAnalysisConfig" />
+    <AvailableItemName Include="AndroidNativeLibrary" />
+    <AvailableItemName Include="AndroidResource" />
+    <AvailableItemName Include="AndroidBoundLayout" />
+    <AvailableItemName Include="LinkDescription" />
+    <AvailableItemName Include="MultiDexMainDexList" />
+    <AvailableItemName Include="ProguardConfiguration" />
+    <AvailableItemName Include="ProjectReference" />
+    <AvailableItemName Include="AndroidManifestOverlay" />
+  </ItemGroup>
+
+  <!-- All project types -->
+  <ItemGroup>
+    <AvailableItemName Include="AndroidGradleProject" />
+    <AvailableItemName Include="TransformFile" />
+    <AvailableItemName Include="LibraryProjectProperties" />
+    <AvailableItemName Include="JavaDocIndex" />
+    <AvailableItemName Include="JavaDocJar" />
+    <AvailableItemName Include="JavaSourceJar" />
+  </ItemGroup>
+
+  <!-- Default item metadata -->
+  <ItemDefinitionGroup>
+    <AndroidResource>
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:UpdateGeneratedFiles</Generator>
+    </AndroidResource>
+    <AndroidLibrary>
+      <Bind>true</Bind>
+      <Pack>true</Pack>
+    </AndroidLibrary>
+    <LibraryProjectZip>
+      <Pack>true</Pack>
+    </LibraryProjectZip>
+    <AndroidJavaSource>
+      <Bind>true</Bind>
+    </AndroidJavaSource>
+    <AndroidAarLibrary>
+      <!-- NOTE: .aar items should skip %(AndroidSkipResourceProcessing) by default -->
+      <AndroidSkipResourceProcessing>true</AndroidSkipResourceProcessing>
+    </AndroidAarLibrary>
+  </ItemDefinitionGroup>
+
+  <!-- Convert @(AndroidLibrary) to the legacy item group names -->
+  <Target Name="_CategorizeAndroidLibraries">
+    <!-- Applications -->
+    <ItemGroup Condition=" '$(AndroidApplication)' == 'true' ">
+      <AndroidAarLibrary  Include="@(AndroidLibrary)" Condition=" '%(AndroidLibrary.Extension)' == '.aar' " />
+      <AndroidJavaLibrary Include="@(AndroidLibrary)" Condition=" '%(AndroidLibrary.Extension)' == '.jar' " />
+      <InputJar Include="@(AndroidLibrary)" Condition=" '%(AndroidLibrary.Extension)' == '.jar' and '%(AndroidLibrary.Bind)' == 'true' " />
+    </ItemGroup>
+    <!-- Class libraries, not an application -->
+    <ItemGroup Condition=" '$(AndroidApplication)' != 'true' ">
+      <EmbeddedNativeLibrary Include="@(AndroidNativeLibrary)" />
+      <AndroidAarLibrary  Include="@(AndroidLibrary)" Condition=" '%(AndroidLibrary.Extension)' == '.aar' and '%(AndroidLibrary.Bind)' != 'true' " />
+      <AndroidJavaLibrary Include="@(AndroidLibrary)" Condition=" '%(AndroidLibrary.Extension)' == '.jar' and '%(AndroidLibrary.Bind)' != 'true' " />
+      <EmbeddedJar        Include="@(AndroidLibrary)" Condition=" '%(AndroidLibrary.Extension)' == '.jar' and '%(AndroidLibrary.Bind)' == 'true' " />
+      <!-- .aar files should be copied to $(OutputPath) in .NET 6+ -->
+      <None Include="@(AndroidLibrary)" Condition=" '%(AndroidLibrary.Extension)' == '.aar' " TfmSpecificPackageFile="%(AndroidLibrary.Pack)" Pack="false" CopyToOutputDirectory="PreserveNewest" Link="%(Filename)%(Extension)" />
+      <!-- @(LibraryProjectZip) items that are not in @(AndroidLibrary) -->
+      <None Include="@(LibraryProjectZip)" Exclude="@(AndroidLibrary)" TfmSpecificPackageFile="%(LibraryProjectZip.Pack)" Pack="false" CopyToOutputDirectory="PreserveNewest" Link="%(Filename)%(Extension)" />
+    </ItemGroup>
+    <!-- All projects -->
+    <ItemGroup>
+      <LibraryProjectZip  Include="@(AndroidLibrary)" Condition=" '%(AndroidLibrary.Extension)' == '.aar' and '%(AndroidLibrary.Bind)' == 'true' " />
+    </ItemGroup>
+  </Target>
+
+</Project>

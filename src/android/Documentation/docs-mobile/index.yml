@@ -1,0 +1,96 @@
+### YamlMime:Hub
+
+#root section (Required)
+title: .NET for Android documentation
+summary: >
+  .NET for Android allows you to write Android apps using .NET languages.
+brand: dotnet
+
+metadata:
+  title: .NET for Android
+  description: The .NET for Android guide has everything you need to learn .NET on the Android platform.
+  ms.service: dotnet-android
+  ms.topic: hub-page
+  author: jonpryor
+  ms.author: jopryo
+  ms.date: 04/18/2024
+
+# highlightedContent section (Optional; Remove if not applicable.)
+# Maximum of 8 items
+highlightedContent:
+# itemType: architecture | concept | deploy | download | get-started | how-to-guide | training | overview | quickstart | reference | sample | tutorial | video | whats-new
+  items:
+    # Card
+    - title: Install .NET for Android
+      itemType: get-started
+      url: ./getting-started/installation/index.md
+
+conceptualContent:
+# itemType: reference
+  # Supports up to 3 subsections
+  sections:
+    - title: .NET for Android Guides
+      items:
+        # Card
+        - title: Build Android apps
+          links:
+            - url: ./building-apps/build-process.md
+              itemType: reference
+              text: Build process
+            - url: ./building-apps/build-targets.md
+              itemType: reference
+              text: Build targets
+            - url: ./building-apps/build-properties.md
+              itemType: reference
+              text: Build properties
+            - url: ./building-apps/build-items.md
+              itemType: reference
+              text: Build items
+        # Card
+        - title: Fundamentals
+          links:
+            - url: ./features/layout-code-behind/index.md
+              itemType: reference
+              text: Layout code behind
+        # Card
+        - title: Bind Android Java libraries
+          links:
+            - url: ./binding-libs/binding-java-libs/index.md
+              itemType: reference
+              text: Overview
+            - url: ./binding-libs/binding-java-libs/binding-java-library.md
+              itemType: reference
+              text: Bind a Java library
+            - url: ./binding-libs/binding-java-libs/binding-java-maven-library.md
+              itemType: reference
+              text: Bind a Java library from Maven
+            - url: ./binding-libs/customizing-bindings/index.md
+              itemType: reference
+              text: Customize bindings
+            - url: ./binding-libs/customizing-bindings/troubleshooting-bindings.md
+              itemType: reference
+              text: Troubleshoot bindings
+
+# additionalContent section (Optional; Remove if not applicable.)
+# Card with links style
+additionalContent:
+  # Supports up to 4 subsections
+  sections:
+
+    - title: References # < 60 chars (optional)
+      items:
+        # Card
+        - title: ".NET API reference"
+          summary: API reference documentation for .NET
+          url: /dotnet/api/?view=net-8.0
+        # Card
+        - title: ".NET for Android API reference"
+          summary: Android-specific API reference
+          url: /dotnet/api/?preserve-view=true&view=net-android-34.0
+        # Card
+        - title: "Tooling message reference"
+          summary: Tooling error and warning message reference
+          url: ./messages/index.md
+
+  # footer (Optional; Remove if not applicable.)
+  footer: "Are you interested in contributing to the .NET docs? For more information, see our [contributor guide](/contribute/dotnet/dotnet-contribute)."

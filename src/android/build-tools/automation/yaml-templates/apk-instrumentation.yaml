@@ -1,0 +1,53 @@
+parameters:
+  buildConfiguration: $(XA.Build.Configuration)
+  configuration: $(XA.Build.Configuration)
+  xaSourcePath: $(System.DefaultWorkingDirectory)
+  testName: ""
+  project: ""
+  testResultsFiles: ""
+  extraBuildArgs: ""
+  testResultsFormat: NUnit
+  artifactSource: ""
+  artifactFolder: ""
+  condition: succeeded()
+
+steps:
+- template: /build-tools/automation/yaml-templates/run-dotnet-preview.yaml
+  parameters:
+    configuration: ${{ parameters.buildConfiguration }}
+    xaSourcePath: ${{ parameters.xaSourcePath }}
+    displayName: run ${{ parameters.testName }}
+    project: ${{ parameters.project }}
+    arguments: >-
+      -t:RunTestApp
+      -bl:${{ parameters.xaSourcePath }}/bin/Test${{ parameters.configuration }}/run-${{ parameters.testName }}.binlog
+      -v:n -c ${{ parameters.configuration }} ${{ parameters.extraBuildArgs }}
+    condition: ${{ parameters.condition }}
+    continueOnError: true
+
+- script: >
+    DEST="$(Build.StagingDirectory)/Test${{ parameters.configuration }}/${{ parameters.artifactFolder }}/" &&
+    mkdir -p "$DEST" &&
+    cp "${{ parameters.artifactSource }}" "$DEST" ||
+    echo "copy apk/aab failed"  # We don't need to report the error
+  displayName: copy apk/aab
+  condition: ne(variables['Agent.JobStatus'], 'Succeeded')
+  continueOnError: true
+
+- task: PublishTestResults@2
+  displayName: publish ${{ parameters.testName }} results
+  inputs:
+    testResultsFormat: ${{ parameters.testResultsFormat }}
+    testResultsFiles: ${{ parameters.testResultsFiles }}
+    testRunTitle: ${{ parameters.testName }}
+  condition: and(${{ parameters.condition }}, ne('${{ parameters.testResultsFiles }}', ''))
+
+- template: /build-tools/automation/yaml-templates/run-dotnet-preview.yaml
+  parameters:
+    configuration: ${{ parameters.buildConfiguration }}
+    xaSourcePath: ${{ parameters.xaSourcePath }}
+    project: ${{ parameters.project }}
+    arguments: -t:Clean -c ${{ parameters.configuration }} --no-restore
+    displayName: Clean ${{ parameters.testName }}
+    condition: ${{ parameters.condition }}
+    continueOnError: false

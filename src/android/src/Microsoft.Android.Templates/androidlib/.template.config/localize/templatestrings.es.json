@@ -1,0 +1,6 @@
+﻿{
+  "author": "Microsoft",
+  "name": "Biblioteca de clases de Android",
+  "description": "Proyecto para crear una biblioteca de clases .NET para Android",
+  "symbols/supportedOSVersion/description": "Invalida $(SupportedOSPlatformVersion) en el proyecto"
+}

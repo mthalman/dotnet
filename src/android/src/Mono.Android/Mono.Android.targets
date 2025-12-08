@@ -1,0 +1,354 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <UsingTask AssemblyFile="$(PrepTasksAssembly)" TaskName="Xamarin.Android.BuildTools.PrepTasks.ReplaceFileContents" />
+  <UsingTask AssemblyFile="$(PrepTasksAssembly)" TaskName="Xamarin.Android.BuildTools.PrepTasks.Git" />
+  <UsingTask AssemblyFile="$(BootstrapTasksAssembly)" TaskName="Xamarin.Android.Tools.BootstrapTasks.CheckApiCompatibility" />
+  <Import Project="..\..\build-tools\scripts\XAVersionInfo.targets" />
+  <Import Project="..\..\bin\Build$(Configuration)\Mono.Android.Apis.projitems" Condition="Exists('..\..\bin\Build$(Configuration)\Mono.Android.Apis.projitems')"/>
+  <ItemGroup>
+    <Compile Include="$(IntermediateOutputPath)AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="mdoc"
+        Version="$(MdocPackageVersion)"
+        GeneratePathProperty="True"
+        ReferenceOutputAssembly="False"
+        SkipGetTargetFrameworkProperties="True"
+    />
+  </ItemGroup>
+  
+  <PropertyGroup>
+    <_ApiXmlLocation>Profiles\</_ApiXmlLocation>
+  </PropertyGroup>
+  
+  <!-- Creates 'AssemblyInfo.cs' with appropriate version information -->
+  <Target Name="_BuildAssemblyInfo_cs"
+      DependsOnTargets="GetXAVersionInfo"
+      BeforeTargets="CoreCompile"
+      Condition="!Exists ('$(IntermediateOutputPath)AssemblyInfo.cs')"
+      Inputs="Properties\AssemblyInfo.cs.in"
+      Outputs="$(IntermediateOutputPath)AssemblyInfo.cs">
+    <PropertyGroup>
+      <_PackageVersion>$(AndroidPackVersion)</_PackageVersion>
+      <_PackageVersionBuild>$(PackVersionCommitCount)</_PackageVersionBuild>
+    </PropertyGroup>
+    <ReplaceFileContents
+        SourceFile="Properties\AssemblyInfo.cs.in"
+        DestinationFile="$(IntermediateOutputPath)AssemblyInfo.cs"
+        Replacements="@PACKAGE_VERSION@=$(_PackageVersion);@PACKAGE_VERSION_BUILD@=$(_PackageVersionBuild);@PACKAGE_HEAD_REV@=$(XAVersionHash);@PACKAGE_HEAD_BRANCH@=$(XAVersionBranch);@API_LEVEL@=$(AndroidApiLevel);@MIN_API_LEVEL@=$(AndroidMinimumDotNetApiLevel)">
+    </ReplaceFileContents>
+  </Target>
+  
+  <!-- Pulls documentation from JavaDoc -->
+  <PropertyGroup>
+    <_JavaSourceUtilsJar>$(MicrosoftAndroidSdkOutDir)java-source-utils.jar</_JavaSourceUtilsJar>
+    <_AndroidSrcDir>$(AndroidSdkDirectory)\sources\android-$(AndroidApiLevel)</_AndroidSrcDir>
+    <_AndroidJavadocXml>..\..\bin\Build$(Configuration)\android-javadoc.xml</_AndroidJavadocXml>
+  </PropertyGroup>
+  
+  <Target Name="_BuildAndroidJavadocXml"
+      Condition=" '$(IncludeAndroidJavadoc)' == 'True' "
+      BeforeTargets="CoreCompile"
+      Inputs="$(MSBuildThisFile);$(_AndroidSrcDir)\source.properties;$(_JavaSourceUtilsJar)"
+      Outputs="$(_AndroidJavadocXml)">
+    <ItemGroup>
+      <_Doclink Include="--doc-copyright" />
+      <_Doclink Include="$(MSBuildThisFileDirectory)javadoc-copyright.xml" />
+      <_Doclink Include="--doc-url-prefix" />
+      <_Doclink Include="https://developer.android.com/reference" />
+      <_Doclink Include="--doc-url-style" />
+      <_Doclink Include="developer.android.com/reference@2020-Nov" />
+      <_Doclink Include="--doc-root-url" />
+      <_Doclink Include="https://developer.android.com/" />
+    </ItemGroup>
+    <ItemGroup>
+      <_AndroidSources Include="$(_AndroidSrcDir)\android\**\*.java" />
+      <_AndroidSources Include="$(_AndroidSrcDir)\java\**\*.java" />
+      <_AndroidSources Include="$(_AndroidSrcDir)\javax\**\*.java" />
+      <_AndroidSources Include="$(_AndroidSrcDir)\org\**\*.java" />
+      <_AndroidSources Remove="$(_AndroidSrcDir)\**\*.annotated.java" />
+    </ItemGroup>
+    <PropertyGroup>
+      <_Filenames>$(IntermediateOutputPath)\java-sources.txt</_Filenames>
+    </PropertyGroup>
+    <WriteLinesToFile
+       File="$(_Filenames)"
+       Lines="@(_Doclink);@(_AndroidSources)"
+       Overwrite="True"
+    />
+    <ItemGroup>
+      <_JSIArg Include="-v" />
+      <_JSIArg Include="--source &quot;$(_AndroidSrcDir)&quot;" />
+      <_JSIArg Include="--output-javadoc &quot;$(_AndroidJavadocXml)&quot;" />
+      <_JSIArg Include="@$(_Filenames)" />
+    </ItemGroup>
+    <Exec
+        Command="&quot;$(JavaPath)&quot; -jar &quot;$(_JavaSourceUtilsJar)&quot; @(_JSIArg, ' ')"
+    />
+    <Touch Files="$(_AndroidJavadocXml)" />
+  </Target>
+  
+  <!-- Copies common 'api-X.xml' to the 'obj' directory.
+       This is needed because 'generator' writes intermediate files like 'api-X.xml.fixed' next to the source
+       'api-X.xml' and multiple profiles are using the source, so these files will clobber each other. -->
+  <Target Name="_CopyXmlLocal"     
+      Inputs="$(_ApiXmlLocation)api-$(AndroidPlatformId).xml"
+      Outputs="$(IntermediateOutputPath)mcw\api-$(AndroidPlatformId).xml">
+      
+    <Copy
+        SourceFiles="$(_ApiXmlLocation)api-$(AndroidPlatformId).xml"
+        DestinationFolder="$(IntermediateOutputPath)mcw\"
+    />
+
+  </Target>
+  
+  <!-- Runs 'generator' -->
+  <Target Name="_GenerateBinding"
+      BeforeTargets="CoreCompile"
+      DependsOnTargets="_CopyXmlLocal"
+      Inputs="$(MSBuildThisFileFullPath);metadata;enumflags;map.csv;methodmap.csv;$(IntermediateOutputPath)mcw\api-$(AndroidPlatformId).xml"
+      Outputs="$(IntermediateOutputPath)mcw\Mono.Android.projitems">
+    <PropertyGroup>
+      <_PlatformIdVersions>$(AndroidSdkDirectory)\platforms\android-$(AndroidPlatformId)\data\api-versions.xml</_PlatformIdVersions>
+      <_AndroidPlatformAnnotations>$(AndroidSdkDirectory)/platforms/android-$(AndroidPlatformId)/data/annotations.zip</_AndroidPlatformAnnotations>
+      <_PlatformToolsAnnotations>$(AndroidSdkDirectory)/platform-tools/api/annotations.zip</_PlatformToolsAnnotations>
+      <_AnnotationsZip Condition=" Exists($(_AndroidPlatformAnnotations)) ">$(_AndroidPlatformAnnotations)</_AnnotationsZip>
+      <_AnnotationsZip Condition=" '$(_AnnotationsZip)' == '' And Exists('$(_PlatformToolsAnnotations)') ">$(_PlatformToolsAnnotations)</_AnnotationsZip>
+    </PropertyGroup>
+    <ItemGroup>
+      <_ApiVersion
+          Condition=" '$(AndroidApiLevel)' > 29 Or !Exists ('$(_PlatformIdVersions)')"
+          Include="$(AndroidSdkDirectory)\platform-tools\api\api-versions.xml"
+      />
+      <_ApiVersion
+          Condition="Exists('$(_PlatformIdVersions)')"
+          Include="$(_PlatformIdVersions)"
+      />
+    </ItemGroup>
+    <PropertyGroup>
+      <Generator>"$(MicrosoftAndroidSdkOutDir)generator.dll"</Generator>
+      <_GenFlags>--public --product-version=7</_GenFlags>
+      <_ApiLevel>--api-level=$(AndroidApiLevel)</_ApiLevel>
+      <_Out>-o "$(IntermediateOutputPath)mcw"</_Out>
+      <_Codegen>--codegen-target=XAJavaInterop1</_Codegen>
+      <_Fixup>--fixup=metadata</_Fixup>
+      <_Enums1>--preserve-enums --enumflags=enumflags --enumfields=map.csv --enummethods=methodmap.csv</_Enums1>
+      <_Enums2>--enummetadata=$(IntermediateOutputPath)mcw\enummetadata</_Enums2>
+      <_Annotations Condition=" '$(_AnnotationsZip)' != '' ">"--annotations=$(_AnnotationsZip)"</_Annotations>
+      <_Assembly>--assembly="Mono.Android, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"</_Assembly>
+      <_TypeMap>--type-map-report=$(IntermediateOutputPath)mcw\type-mapping.txt</_TypeMap>
+      <_Api>$(IntermediateOutputPath)mcw\api-$(AndroidPlatformId).xml</_Api>
+      <_Dirs>--enumdir=$(IntermediateOutputPath)mcw</_Dirs>
+      <_WithJavadocXml Condition=" '$(IncludeAndroidJavadoc)' == 'True' ">"--doc-comment-verbosity=$(AndroidJavadocVerbosity)" "--with-javadoc-xml=$(_AndroidJavadocXml)"</_WithJavadocXml>
+      <_FullIntermediateOutputPath>$([System.IO.Path]::GetFullPath('$(IntermediateOutputPath)'))</_FullIntermediateOutputPath>
+      <_LangFeatures>--lang-features=nullable-reference-types</_LangFeatures>
+      <_LangFeatures Condition="$(AndroidApiLevel) &gt;= 30">$(_LangFeatures),default-interface-methods,nested-interface-types,interface-constants</_LangFeatures>
+      <_LangFeatures Condition=" $([MSBuild]::VersionGreaterThanOrEquals($(TargetFrameworkVersion), '7.0')) ">$(_LangFeatures),obsoleted-platform-attributes</_LangFeatures>
+    </PropertyGroup>
+    <Exec
+        Command="&quot;$(DotNetPreviewTool)&quot; $(Generator) $(_GenFlags) $(_ApiLevel) $(_Out) $(_Codegen) $(_Fixup) $(_Enums1) $(_Enums2) $(_Versions) $(_Annotations) $(_Assembly) $(_TypeMap) $(_LangFeatures) $(_Dirs) $(_Api) $(_WithJavadocXml)"
+        IgnoreStandardErrorWarningFormat="True"
+    />
+    <ItemGroup>
+      <Compile Include="$(_FullIntermediateOutputPath)\mcw\**\*.cs" KeepDuplicates="False" />
+    </ItemGroup>
+    <XmlPeek
+        Namespaces="&lt;Namespace Prefix='msbuild' Uri='http://schemas.microsoft.com/developer/msbuild/2003' /&gt;"
+        XmlInputPath="$(IntermediateOutputPath)mcw\Mono.Android.projitems"
+        Query="/msbuild:Project/msbuild:PropertyGroup/msbuild:DefineConstants/text()" >
+      <Output TaskParameter="Result" PropertyName="_GeneratedDefineConstants" />
+    </XmlPeek>
+    <PropertyGroup>
+      <DefineConstants>$(DefineConstants);$([System.String]::Copy('$(_GeneratedDefineConstants)').Replace ('%24(DefineConstants);', ''))</DefineConstants>
+    </PropertyGroup>
+  </Target>
+  <ItemGroup>
+    <JavaCallableWrapperSource Include="java\**\*.java" />
+  </ItemGroup>
+  
+  <!-- Generates 'AndroidApiInfo.xml' file -->
+  <Target Name="_GenerateAndroidApiInfo"
+      BeforeTargets="GetTargetFrameworkProperties;GetReferenceAssemblyPaths;ResolveReferences"
+      Inputs="$(MSBuildProjectFullPath);..\..\bin\Build$(Configuration)\Mono.Android.Apis.projitems"
+      Outputs="$(OutputPath)AndroidApiInfo.xml">
+   <MakeDir Directories="$(OutputPath)" />
+   <ItemGroup>
+     <_ApiInfo
+         Condition=" '%(Identity)' == '$(AndroidFrameworkVersion)' "
+         Include="@(AndroidApiInfo)"
+     />
+     <!--
+       Note: must be parsable by AndroidVersion.Load():
+       https://github.com/dotnet/android-tools/blob/31609cace094e978ee1e2a720661346cde5cd332/src/Xamarin.Android.Tools.AndroidSdk/AndroidVersion.cs#L92-L106
+       -->
+     <_Line Include="&lt;AndroidApiInfo&gt;" />
+     <_Line Include="@(_ApiInfo->'  &lt;Id>%(Id)&lt;/Id>')" />
+     <_Line Include="@(_ApiInfo->'  &lt;Level>%(Level)&lt;/Level>')" />
+     <_Line Include="@(_ApiInfo->'  &lt;VersionCodeFull>%(VersionCodeFull)&lt;/VersionCodeFull>')" />
+     <_Line Include="@(_ApiInfo->'  &lt;Name>%(Name)&lt;/Name>')" />
+     <_Line Include="@(_ApiInfo->'  &lt;Version>%(Identity)&lt;/Version>')" />
+     <_Line Include="@(_ApiInfo->'  &lt;Stable>%(Stable)&lt;/Stable>')" />
+     <_Line Include="&lt;/AndroidApiInfo&gt;" />
+   </ItemGroup>
+   <WriteLinesToFile
+       File="$(OutputPath)AndroidApiInfo.xml"
+       Lines="@(_Line)"
+       Overwrite="True"
+   />
+  </Target>
+  
+  <!-- Removes entire 'obj' directory on Clean -->
+  <Target Name="_CleanBinding"
+      AfterTargets="Clean">
+    <RemoveDir Directories="$(IntermediateOutputPath)" />
+  </Target>
+  
+  <!-- Runs ApiCompat to prevent API breakage -->
+  <PropertyGroup>
+    <ApiCompatibilityDir>../../tests/api-compatibility</ApiCompatibilityDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <ApiCompatibilityFiles Include="$(ApiCompatibilityDir)/acceptable-breakages-v*.txt" />
+    <ApiCompatibilityFiles Include="$(ApiCompatibilityDir)/reference/*.*" />
+  </ItemGroup>
+  <Target
+      Name="_CheckApiCompatibility"
+      Condition=" '$(DisableApiCompatibilityCheck)' != 'True' "
+      AfterTargets="CopyFilesToOutputDirectory"
+
+      Inputs="$(TargetPath);@(ApiCompatibilityFiles)"
+      Outputs="$(IntermediateOutputPath)CheckApiCompatibility.stamp">
+    <CheckApiCompatibility
+        ApiCompatPath="$(XAPackagesDir)/microsoft.dotnet.apicompat/$(MicrosoftDotNetApiCompatPackageVersion)/tools/net472/"
+        CodeGenPath="$(XAPackagesDir)/microsoft.dotnet.genapi/$(MicrosoftDotNetApiCompatPackageVersion)/tools/net472/"
+        ApiLevel="$(AndroidFrameworkVersion)"
+        LastStableApiLevel="$(AndroidLatestStableFrameworkVersion)"
+        TargetImplementationPath="$(OutputPath)"
+        ApiCompatibilityPath="$(ApiCompatibilityDir)"
+        TargetFramework="$(TargetFramework)"
+        LinesToAdd="$(MSBuildThisFileDirectory)ApiCompatLinesToAdd.txt"
+    />
+    <Touch
+        Files="$(IntermediateOutputPath)CheckApiCompatibility.stamp"
+        AlwaysCreate="True"
+    />
+    <ItemGroup>
+      <FileWrites Include="$(IntermediateOutputPath)CheckApiCompatibility.stamp" />
+    </ItemGroup>
+  </Target>
+
+
+  <PropertyGroup>
+    <!-- Override these properties to generate docs against a specific API level -->
+    <DocsApiLevel Condition=" '$(DocsApiLevel)' == '' ">36</DocsApiLevel>
+    <DocsPlatformId Condition=" '$(DocsPlatformId)' == '' ">$(DocsApiLevel)</DocsPlatformId>
+    <DocsFxMoniker Condition=" '$(DocsFxMoniker)' == '' ">net-android-$(DocsApiLevel).0</DocsFxMoniker>
+    <DocsExportOutput Condition=" '$(DocsExportOutput)' == '' ">$(_MonoAndroidNETDefaultOutDir)Mono.Android.xml</DocsExportOutput>
+    <_ExternalDocsRoot>$(XamarinAndroidSourcePath)external/android-api-docs/docs/xml</_ExternalDocsRoot>
+    <_LogPrefix>$(MSBuildThisFileDirectory)../../bin/Build$(Configuration)/UpdateApiDocs-$([System.DateTime]::Now.ToString ("yyyyMMddTHHmmss"))</_LogPrefix>
+    <_ManagedRuntime Condition=" !$([MSBuild]::IsOSPlatform('windows')) ">mono</_ManagedRuntime>
+    <_MdocExe Condition=" '$(Pkgmdoc)' != '' ">"$(Pkgmdoc)/tools/net471/mdoc.exe"</_MdocExe>
+    <_MdocExe Condition=" '$(Pkgmdoc)' == '' ">"$(XAPackagesDir)/mdoc/$(MdocPackageVersion)/tools/net471/mdoc.exe"</_MdocExe>
+    <_Mdoc Condition=" '$(Pkgmdoc)' != '' ">"$(Pkgmdoc)/tools/net6.0/mdoc.dll"</_Mdoc>
+    <_Mdoc Condition=" '$(Pkgmdoc)' == '' ">"$(XAPackagesDir)/mdoc/$(MdocPackageVersion)/tools/net6.0/mdoc.dll"</_Mdoc>
+  </PropertyGroup>
+
+  <!-- Generate documentation using MDoc -->
+  <Target Name="UpdateExternalDocumentation">
+    <MSBuild Projects="$(MSBuildThisFileDirectory)Mono.Android.csproj"
+        Properties="TargetFramework=$(DotNetTargetFramework);DocsExportOutput=$(BaseIntermediateOutputPath)Mono.Android.temp.xml"
+        Targets="_UpdateExternalDocumentation;_RunMdoc;_ExportMsxDoc;_GenerateApiDocsDiff"
+    />
+  </Target>
+  <Target Name="_UpdateExternalDocumentation">
+    <RemoveDir Directories="$(BaseIntermediateOutputPath)" />
+    <ItemGroup>
+      <_BuildProps Include="-p:TargetFramework=$(DotNetTargetFramework)" />
+      <_BuildProps Include="-p:IncludeAndroidJavadoc=True" />
+      <_BuildProps Include="-p:AndroidApiLevel=$(DocsApiLevel)" />
+      <_BuildProps Include="-p:AndroidPlatformId=$(DocsPlatformId)" />
+    </ItemGroup>
+    <Exec
+        Command="&quot;$(DotNetPreviewTool)&quot; build -v:n -c $(Configuration) -bl:$(_LogPrefix).binlog @(_BuildProps, ' ')"
+        IgnoreStandardErrorWarningFormat="True"
+        WorkingDirectory="$(MSBuildThisFileDirectory)"
+    />
+  </Target>
+
+  <!-- `mdoc fx-bootstrap` and `mdoc update` require the .NET framework version of mdoc, a mono install will be needed to run the RunMdoc target on macOS/Linux -->
+  <Target Name="RunMdoc">
+    <MSBuild Projects="$(MSBuildThisFileDirectory)Mono.Android.csproj"
+        Targets="_RunMdoc"
+    />
+  </Target>
+  <Target Name="_RunMdoc">
+    <PropertyGroup>
+      <_Libdir>-L "$(DotNetPreviewPath)packs/Microsoft.NETCore.App.Ref"</_Libdir>
+      <_Output>-o "$(_ExternalDocsRoot)"</_Output>
+      <_DocTypeArgs Condition=" '$(DocTypeName)' != '' ">--type=$(DocTypeName)</_DocTypeArgs>
+      <_RootFxDir>$(BaseIntermediateOutputPath)docs-gen-temp/</_RootFxDir>
+      <_FxConfig>-fx "$(_RootFxDir)"</_FxConfig>
+      <_ExtraMdocArgs>-lang docid -lang fsharp --debug --delete</_ExtraMdocArgs>
+    </PropertyGroup>
+    <ItemGroup>
+      <_FxAssembly Include="$(_MonoAndroidNETDefaultOutDir)*.dll" />
+      <_FxAssemblyXml Include="@(_FxAssembly->'%(RelativeDir)%(Filename).xml')" Condition=" Exists('%(RelativeDir)%(Filename).xml') " />
+    </ItemGroup>
+    <!-- Create a docs framework directory which contains:
+          src/Mono.Android/obj/docs-gen-temp
+          ├── frameworks.xml
+          └── net-android-34.0
+              ├── Java.Interop.dll
+              ├── Java.Interop.xml
+              ├── Mono.Android.Runtime.dll
+              ├── Mono.Android.dll
+              └── Mono.Android.xml
+    -->
+    <RemoveDir Directories="$(_RootFxDir)" />
+    <MakeDir Directories="$(_RootFxDir)" />
+    <MakeDir Directories="$(_RootFxDir)$(DocsFxMoniker)" />
+    <Copy
+        SourceFiles="@(_FxAssembly);@(_FxAssemblyXml)"
+        DestinationFolder="$(_RootFxDir)$(DocsFxMoniker)"
+    />
+    <Exec
+        Command="$(_ManagedRuntime) $(_MdocExe) fx-bootstrap -fx $(_RootFxDir) -importContent true"
+        WorkingDirectory="$(MSBuildThisFileDirectory)"
+    />
+    <Exec
+        Command="$(_ManagedRuntime) $(_MdocExe) update $(_Libdir) $(_Output) $(_DocTypeArgs) $(_FxConfig) $(_ExtraMdocArgs)"
+        WorkingDirectory="$(MSBuildThisFileDirectory)"
+    />
+  </Target>
+
+  <Target Name="_GenerateApiDocsDiff">
+    <Git
+        Arguments="add ."
+        WorkingDirectory="$(XamarinAndroidSourcePath)external/android-api-docs"
+        ToolPath="$(GitToolPath)"
+        ToolExe="$(GitToolExe)"
+    />
+    <Git
+        Arguments="diff --cached --output=&quot;$(_LogPrefix).diff&quot;"
+        WorkingDirectory="$(XamarinAndroidSourcePath)external/android-api-docs"
+        ToolPath="$(GitToolPath)"
+        ToolExe="$(GitToolExe)"
+    />
+  </Target>
+
+  <Target Name="_FindDocSourceFiles">
+    <ItemGroup>
+      <_MsxDocSourceFile Include="$(_ExternalDocsRoot)\**" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="_ExportMsxDoc"
+      DependsOnTargets="_FindDocSourceFiles"
+      Inputs="@(_MsxDocSourceFile)"
+      Outputs="$(DocsExportOutput)">
+    <Exec
+        Command="dotnet $(_Mdoc) --debug export-msxdoc -o &quot;$(DocsExportOutput)&quot; &quot;$(_ExternalDocsRoot)&quot;"
+    />
+  </Target>
+
+</Project>

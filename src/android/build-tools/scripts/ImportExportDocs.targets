@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <_TopDirImportExportDocs>$(MSBuildThisFileDirectory)..\..\</_TopDirImportExportDocs>
+    <XamarinDocsPath Condition=" '$(XamarinDocsPath)' == '' ">$(_TopDirImportExportDocs)..\xamarin-docs\</XamarinDocsPath>
+    <XamarinEngineeringDocsPath Condition=" '$(XamarinEngineeringDocsPath)' == '' ">$(_TopDirImportExportDocs)..\xamarin-engineering-docs-pr\</XamarinEngineeringDocsPath>
+    <_XamarinDocsPath>$([MSBuild]::EnsureTrailingSlash($(XamarinDocsPath)))</_XamarinDocsPath>
+    <_XamarinEngineeringDocsPath>$([MSBuild]::EnsureTrailingSlash($(XamarinEngineeringDocsPath)))</_XamarinEngineeringDocsPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <_Docs    Include="building-apps\build-items.md" />
+    <_Docs    Include="building-apps\build-process.md" />
+    <_Docs    Include="building-apps\build-properties.md" />
+    <_Docs    Include="building-apps\build-targets.md" />
+    <_MSDocs  Include="@(_Docs->'$(_XamarinDocsPath)docs\android\deploy-test\%(Identity)')" />
+    <_XADocs  Include="@(_Docs->'$(_TopDirImportExportDocs)Documentation\guides\%(Identity)')" />
+  </ItemGroup>
+  <Target Name="ImportXamarinDocs">
+    <Error
+        Condition=" !Exists($(XamarinDocsPath)) "
+        Text="Cannot find checkout of https://github.com/MicrosoftDocs/xamarin-docs.  Please use /p:XamarinDocsPath"
+    />
+    <Copy
+        SourceFiles="@(_MSDocs)"
+        DestinationFiles="@(_XADocs)"
+        SkipUnchangedFiles="true"
+    />
+  </Target>
+  <Target Name="ExportXamarinDocs">
+    <Error
+        Condition=" !Exists($(XamarinDocsPath)) "
+        Text="Cannot find checkout of https://github.com/MicrosoftDocs/xamarin-docs.  Please use /p:XamarinDocsPath"
+    />
+    <Copy
+        SourceFiles="@(_XADocs)"
+        DestinationFiles="@(_MSDocs)"
+        SkipUnchangedFiles="true"
+    />
+  </Target>
+  <Target Name="ImportXamarinEngineeringDocs">
+    <Error
+        Condition=" !Exists($(XamarinEngineeringDocsPath)) "
+        Text="Cannot find checkout of https://github.com/MicrosoftDocs/xamarin-engineering-docs-pr.  Please use /p:XamarinEngineeringDocsPath"
+    />
+    <ItemGroup>
+      <_MessageDocumentationFile
+          Include="$(_XamarinEngineeringDocsPath)docs\android\errors-and-warnings\*.md"
+          Exclude="$(_XamarinEngineeringDocsPath)docs\android\errors-and-warnings\TOC.md;$(XamarinEngineeringDocsPath)docs\android\errors-and-warnings\index.md"
+      />
+      <_MessageDocumentationImages
+          Include="$(_XamarinEngineeringDocsPath)docs\android\errors-and-warnings\images\*"
+      />
+    </ItemGroup>
+    <Copy
+        SourceFiles="@(_MessageDocumentationFile)"
+        DestinationFolder="$(_TopDirImportExportDocs)Documentation\guides\messages"
+        SkipUnchangedFiles="true"
+    />
+    <Copy
+        SourceFiles="@(_MessageDocumentationImages)"
+        DestinationFolder="$(_TopDirImportExportDocs)Documentation\guides\messages\images"
+        SkipUnchangedFiles="true"
+    />
+    <Copy
+        SourceFiles="$(_XamarinEngineeringDocsPath)docs\android\errors-and-warnings\index.md"
+        DestinationFiles="$(_TopDirImportExportDocs)Documentation\guides\messages\README.md"
+        SkipUnchangedFiles="true"
+    />
+  </Target>
+  <Target Name="ExportXamarinEngineeringDocs">
+    <Error
+        Condition=" !Exists($(XamarinEngineeringDocsPath)) "
+        Text="Cannot find checkout of https://github.com/MicrosoftDocs/xamarin-engineering-docs-pr.  Please use /p:XamarinEngineeringDocsPath"
+    />
+    <ItemGroup>
+      <_MessageDocumentationFile
+          Include="$(_TopDirImportExportDocs)Documentation\guides\messages\*.md"
+          Exclude="$(_TopDirImportExportDocs)Documentation\guides\messages\README.md"
+      />
+      <_MessageDocumentationImages
+          Include="$(_TopDirImportExportDocs)Documentation\guides\messages\images\*"
+      />
+    </ItemGroup>
+    <Copy
+        SourceFiles="@(_MessageDocumentationFile)"
+        DestinationFolder="$(_XamarinEngineeringDocsPath)docs\android\errors-and-warnings\"
+        SkipUnchangedFiles="true"
+    />
+    <Copy
+        SourceFiles="@(_MessageDocumentationImages)"
+        DestinationFolder="$(_XamarinEngineeringDocsPath)docs\android\errors-and-warnings\images"
+        SkipUnchangedFiles="true"
+    />
+    <Copy
+        SourceFiles="$(_TopDirImportExportDocs)Documentation\guides\messages\README.md"
+        DestinationFiles="$(_XamarinEngineeringDocsPath)docs\android\errors-and-warnings\index.md"
+        SkipUnchangedFiles="true"
+    />
+    <ReadLinesFromFile File="$(_TopDirImportExportDocs)Documentation\guides\messages\README.md">
+      <Output
+          TaskParameter="Lines"
+          ItemName="_MessageDocsReadmeLines"
+      />
+    </ReadLinesFromFile>
+    <ItemGroup>
+      <_MessageDocsTocLines Include="# [Errors and Warnings](index.md)" />
+      <_MessageDocsTocLines
+          Include="$([System.Text.RegularExpressions.Regex]::Replace($([System.Text.RegularExpressions.Regex]::Replace('%(_MessageDocsReadmeLines.Identity)', '^\s*\+\s', '### ')), '\):.*', ')'))"
+          Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('%(_MessageDocsReadmeLines.Identity)', '^\s*\+\s*\[[^\]]*\]\(.*\):|^##'))"
+      />
+    </ItemGroup>
+    <WriteLinesToFile
+        File="$(_XamarinEngineeringDocsPath)docs\android\errors-and-warnings\TOC.md"
+        Lines="@(_MessageDocsTocLines)"
+        Overwrite="true"
+        WriteOnlyWhenDifferent="true"
+        Encoding="ascii"
+    />
+  </Target>
+</Project>

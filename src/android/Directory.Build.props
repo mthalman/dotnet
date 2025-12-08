@@ -1,0 +1,81 @@
+<Project>
+
+  <PropertyGroup>
+    <DirectoryBuildPropsImported>true</DirectoryBuildPropsImported>
+    <DotNetTargetFrameworkVersion>10.0</DotNetTargetFrameworkVersion>
+    <DotNetTargetFramework>net$(DotNetTargetFrameworkVersion)</DotNetTargetFramework>
+    <DotNetAndroidTargetFramework>$(DotNetTargetFramework)-android</DotNetAndroidTargetFramework>
+    <!-- Used for bootstrap, command-line tooling, and desktop NUnit projects -->
+    <DotNetStableTargetFramework>net9.0</DotNetStableTargetFramework>
+    <TargetFrameworkNETStandard>netstandard2.0</TargetFrameworkNETStandard>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <BuildOutputDirectory>$(MSBuildThisFileDirectory)bin\$(Configuration)\</BuildOutputDirectory>
+    <BootstrapOutputDirectory>$(MSBuildThisFileDirectory)bin\Build$(Configuration)\</BootstrapOutputDirectory>
+    <TestOutputDirectory>$(MSBuildThisFileDirectory)bin\Test$(Configuration)\</TestOutputDirectory>
+    <BootstrapTasksAssembly>$(BootstrapOutputDirectory)$(TargetFrameworkNETStandard)\Xamarin.Android.Tools.BootstrapTasks.dll</BootstrapTasksAssembly>
+    <PrepTasksAssembly>$(BootstrapOutputDirectory)$(TargetFrameworkNETStandard)\xa-prep-tasks.dll</PrepTasksAssembly>
+    <DotNetPreviewPath Condition=" '$(DotNetPreviewPath)' == '' ">$(BuildOutputDirectory)dotnet\</DotNetPreviewPath>
+    <DotNetPreviewTool Condition=" '$(DotNetPreviewTool)' == '' and Exists('$(DotNetPreviewPath)') ">$(DotNetPreviewPath)dotnet</DotNetPreviewTool>
+    <DotNetPreviewTool Condition=" '$(DotNetPreviewTool)' == '' ">dotnet</DotNetPreviewTool>
+    <!-- Copy PackageReference content to OutputDir for our build tasks, tests, and installer creation logic. This no longer happens by default in short-form projects. -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <!-- Ensure reference assemblies copied to bin -->
+    <ProduceReferenceAssemblyInOutDir>true</ProduceReferenceAssemblyInOutDir>
+    <!-- Ensure command-line apps can use a newer .NET -->
+    <RollForward>Major</RollForward>
+    <!-- We don't need to be warned that we are using a preview .NET -->
+    <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
+    <!-- Disables the transitive restore of packages like Microsoft.AspNetCore.App.Ref, Microsoft.WindowsDesktop.App.Ref -->
+    <DisableTransitiveFrameworkReferenceDownloads>true</DisableTransitiveFrameworkReferenceDownloads>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <ProductVersion>16.0.0</ProductVersion>
+    <!-- NuGet package version numbers. See Documentation/guides/OneDotNet.md.
+         Rules:
+         * Major/Minor match Android stable API level, such as 30.0 for API 30.
+         * Bump first digit of the patch version for feature releases (and reset the first two digits to 0)
+    -->
+    <AndroidPackVersion>36.1.99</AndroidPackVersion>
+    <AndroidPackVersionSuffix>preview.1</AndroidPackVersionSuffix>
+    <!-- Final value set by GetXAVersionInfo target -->
+    <IsStableBuild>false</IsStableBuild>
+  </PropertyGroup>
+
+  <!-- Common <PackageReference/> versions -->
+  <PropertyGroup>
+    <LibZipSharpVersion>3.3.0</LibZipSharpVersion>
+    <MicroBuildCoreVersion>1.0.0</MicroBuildCoreVersion>
+    <MonoCecilVersion>0.11.5</MonoCecilVersion>
+    <NewtonsoftJsonPackageVersion>13.0.3</NewtonsoftJsonPackageVersion>
+    <NuGetApiPackageVersion>5.4.0</NuGetApiPackageVersion>
+    <LZ4PackageVersion>1.3.6</LZ4PackageVersion>
+    <MonoOptionsVersion>6.12.0.148</MonoOptionsVersion>
+    <SystemCollectionsImmutableVersion>8.0.0</SystemCollectionsImmutableVersion>
+    <SystemRuntimeCompilerServicesUnsafeVersion>6.0.0</SystemRuntimeCompilerServicesUnsafeVersion>
+    <ELFSharpVersion>2.17.3</ELFSharpVersion>
+    <HumanizerVersion>2.14.1</HumanizerVersion>
+    <MdocPackageVersion Condition=" '$(MdocPackageVersion)' == '' ">5.9.3</MdocPackageVersion>
+  </PropertyGroup>
+  
+  <PropertyGroup>
+    <!-- 
+      Use $(TreatWarningsAsErrors) for CI builds. We have grandfathered some projects that have existing warnings,
+      but we would like to go ahead and prevent any other projects from getting new warnings.
+      
+      This can be opted into locally with $(_AndroidTreatWarningsAsErrors) = true.
+    -->
+    <_AllowProjectWarnings Condition=" '$(MSBuildProjectFile)' == 'jnienv-gen.csproj' ">true</_AllowProjectWarnings>
+    <_AllowProjectWarnings Condition=" '$(MSBuildProjectFile)' == 'Mono.Android.csproj' ">true</_AllowProjectWarnings>
+    <_AllowProjectWarnings Condition=" '$(MSBuildProjectFile)' == 'Mono.Android.NET-Tests.csproj' ">true</_AllowProjectWarnings>
+    <_AllowProjectWarnings Condition=" '$(MSBuildProjectFile)' == 'MSBuildDeviceIntegration.csproj' ">true</_AllowProjectWarnings>
+    <_AllowProjectWarnings Condition=" '$(MSBuildProjectFile)' == 'NativeAOT.csproj' ">true</_AllowProjectWarnings>
+    <_AllowProjectWarnings Condition=" '$(MSBuildProjectFile)' == 'TestRunner.Core.NET.csproj' ">true</_AllowProjectWarnings>
+    <_AllowProjectWarnings Condition=" '$(MSBuildProjectFile)' == 'Xamarin.Android.Build.Tests.csproj' ">true</_AllowProjectWarnings>
+    <_AllowProjectWarnings Condition=" '$(MSBuildProjectFile)' == 'Xamarin.Android.JcwGen-Tests.csproj' ">true</_AllowProjectWarnings>
+    <_AllowProjectWarnings Condition=" '$(MSBuildProjectFile)' == 'Xamarin.Android.NUnitLite.NET.csproj' ">true</_AllowProjectWarnings>
+    <_AllowProjectWarnings Condition=" '$(MSBuildProjectFile)' == 'Xamarin.ProjectTools.csproj' ">true</_AllowProjectWarnings>
+    <TreatWarningsAsErrors Condition=" ('$(RunningOnCI)' == 'true' OR '$(_AndroidTreatWarningsAsErrors)' == 'true') AND '$(_AllowProjectWarnings)' != 'true' ">true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+</Project>

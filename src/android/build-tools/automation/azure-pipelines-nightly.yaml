@@ -1,0 +1,361 @@
+# .NET for Android Nightly Pipeline
+
+name: $(Build.SourceBranchName)-$(Build.SourceVersion)-$(Rev:r)
+
+trigger:
+  - none
+
+pr:
+  - none
+
+# External sources, scripts, tests, and yaml template files.
+resources:
+  repositories:
+  - repository: yaml-templates
+    type: git
+    name: DevDiv/Xamarin.yaml-templates
+    ref: refs/heads/main
+  - repository: android-platform-support
+    type: git
+    name: DevDiv/android-platform-support
+    ref: refs/heads/main
+  - repository: maui
+    type: github
+    name: dotnet/maui
+    endpoint: xamarin
+
+parameters:
+- name: ApiScanSourceBranch
+  default: 'refs/heads/main'
+
+# Global variables
+variables:
+- template: /build-tools/automation/yaml-templates/variables.yaml
+
+stages:
+- stage: mac_build
+  displayName: Build
+  dependsOn: []
+  jobs:
+  - job: mac_build_create_installers
+    displayName: macOS > Create Installers
+    pool:
+      name: $(SharedMacPool)
+      demands:
+      - macOS.Name -equals $(SharedMacName)
+      - Agent.OSArchitecture -equals $(SharedMacArch)
+    timeoutInMinutes: 420
+    workspace:
+      clean: all
+    variables:
+      - group: Xamarin-Secrets
+      - group: Xamarin Signing
+      - group: xamops-azdev-secrets
+      - name: Codeql.Enabled
+        value: true
+    steps:
+    - checkout: self
+      submodules: recursive
+      path: s/android
+
+    - template: /build-tools/automation/yaml-templates/commercial-build.yaml
+      parameters:
+        makeMSBuildArgs: /p:EnableNativeAnalyzers=true
+        use1ESTemplate: false
+
+    - template: /build-tools/automation/yaml-templates/upload-results.yaml
+      parameters:
+        xaSourcePath: $(System.DefaultWorkingDirectory)/android
+        artifactName: Build Results - Nightly macOS
+        includeBuildResults: true
+        use1ESTemplate: false
+
+- stage: test_apk
+  displayName: Test APKs
+  dependsOn: mac_build
+  variables:
+  - group: Xamarin-Secrets
+  - group: xamops-azdev-secrets
+  jobs:
+  - job: test_apk_monoandroid
+    displayName: macOS > Test APKs > Mono.Android
+    timeoutInMinutes: 180
+    strategy:
+      matrix:
+        Android21-x86:
+          avdApiLevel: 21
+          avdAbi: x86
+          avdType: default
+        Android23-x86_64:
+          avdApiLevel: 23
+          avdAbi: x86_64
+          avdType: default
+        Android24-x86:
+          avdApiLevel: 24
+          avdAbi: x86
+          avdType: default
+        Android26-x86_64:
+          avdApiLevel: 26
+          avdAbi: x86_64
+          avdType: default
+        Android28-x86_64:
+          avdApiLevel: 28
+          avdAbi: x86_64
+          avdType: default
+        Android30-x86_64:
+          avdApiLevel: 30
+          avdAbi: x86_64
+          avdType: default
+        Android31-x86_64:
+          avdApiLevel: 31
+          avdAbi: x86_64
+          avdType: default
+        Android33-x86_64:
+          avdApiLevel: 33
+          avdAbi: x86_64
+          avdType: google_apis
+    pool:
+      vmImage: $(HostedMacImageWithEmulator)
+    workspace:
+      clean: all
+    steps:
+    - template: /build-tools/automation/yaml-templates/setup-test-environment.yaml
+      parameters:
+        xaprepareScenario: EmulatorTestDependencies
+        jdkMajorVersion: $(LatestJavaSdkMajorVersion)
+
+    - template: /build-tools/automation/yaml-templates/run-dotnet-preview.yaml
+      parameters:
+        project: Xamarin.Android.sln
+        arguments: -t:PrepareJavaInterop -c $(XA.Build.Configuration) -m:1 -v:n
+        displayName: prepare java.interop $(XA.Build.Configuration)
+        continueOnError: false
+
+    - template: /build-tools/automation/yaml-templates/start-stop-emulator.yaml
+      parameters:
+        specificImage: true
+        avdApiLevel: $(avdApiLevel)
+        avdAbi: $(avdAbi)
+        avdType: $(avdType)
+        emulatorMSBuildArgs: -p:JavaSdkDirectory=$(JI_JAVA_HOME_DEFAULT)
+
+    - template: /build-tools/automation/yaml-templates/apk-instrumentation.yaml
+      parameters:
+        configuration: $(XA.Build.Configuration)
+        testName: Mono.Android.NET_Tests-$(XA.Build.Configuration)-$(avdApiLevel)
+        project: tests/Mono.Android-Tests/Mono.Android-Tests/Mono.Android.NET-Tests.csproj
+        testResultsFiles: TestResult-Mono.Android.NET_Tests-$(XA.Build.Configuration)$(avdApiLevel).xml
+        extraBuildArgs: -p:TestsFlavor=$(avdApiLevel) -p:TestAvdApiLevel=$(avdApiLevel) -p:TestAvdAbi=$(avdAbi) -p:TestAvdType=$(avdType)
+        artifactSource: bin/Test$(XA.Build.Configuration)/$(DotNetTargetFramework)-android/Mono.Android.NET_Tests-Signed.aab
+        artifactFolder: Mono.Android-$(XA.Build.Configuration)-$(avdApiLevel)
+
+    - template: /build-tools/automation/yaml-templates/upload-results.yaml
+      parameters:
+        configuration: $(XA.Build.Configuration)
+        artifactName: Test Results - Emulator $(avdApiLevel)-$(avdAbi)-$(avdType) - macOS
+        use1ESTemplate: false
+
+    - template: /build-tools/automation/yaml-templates/fail-on-issue.yaml
+
+  - template: /build-tools/automation/yaml-templates/run-emulator-tests.yaml
+    parameters:
+      emulatorMSBuildArgs: -p:TestAvdExtraBootArgs=-writable-system
+      jobName: SystemApplicationTests
+      jobTimeout: 120
+      use1ESTemplate: false
+      testSteps:
+      - template: run-nunit-tests.yaml
+        parameters:
+          testRunTitle: SystemApplicationTests On Device - macOS
+          testAssembly: $(System.DefaultWorkingDirectory)/bin/Test$(XA.Build.Configuration)/MSBuildDeviceIntegration/$(DotNetStableTargetFramework)/MSBuildDeviceIntegration.dll
+          dotNetTestExtraArgs: --filter "Name=SystemApplicationTests"
+
+
+# TimeZoneInfo test jobs
+- stage: test_timezoneinfo
+  displayName: Test TimeZoneInfo
+  dependsOn: mac_build
+  variables:
+  - group: Xamarin-Secrets
+  - group: xamops-azdev-secrets
+  jobs:
+  - job: mac_timezoneinfo_tests
+    displayName: TimeZoneInfoTests Emulator Tests
+    strategy:
+      parallel: 3
+    pool:
+      name: $(SharedMacPool)
+      demands:
+      - macOS.Name -equals $(SharedMacName)
+      - macOS.Architecture -equals x64
+    timeoutInMinutes: 120
+    workspace:
+      clean: all
+    steps:
+    - template: agent-cleanser/v1.yml@yaml-templates
+
+    - template: /build-tools/automation/yaml-templates/setup-test-environment.yaml
+      parameters:
+        installTestSlicer: true
+        xaprepareScenario: EmulatorTestDependencies
+        useAgentJdkPath: false
+        jdkMajorVersion: $(LatestJavaSdkMajorVersion)
+
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        artifactName: $(TestAssembliesArtifactName)
+        downloadPath: $(System.DefaultWorkingDirectory)/bin/Test$(XA.Build.Configuration)
+
+    - template: /build-tools/automation/yaml-templates/start-stop-emulator.yaml
+      parameters:
+        emulatorMSBuildArgs: -p:TestAvdShowWindow=true
+
+    - template: /build-tools/automation/yaml-templates/run-sliced-nunit-tests.yaml
+      parameters:
+        testAssembly: $(System.DefaultWorkingDirectory)/bin/Test$(XA.Build.Configuration)/MSBuildDeviceIntegration/$(DotNetStableTargetFramework)/MSBuildDeviceIntegration.dll
+        testFilter: method == CheckTimeZoneInfoIsCorrectWithSlicer
+        testRunTitle: CheckTimeZoneInfoIsCorrectNode On Device - macOS
+
+    - template: /build-tools/automation/yaml-templates/upload-results.yaml
+      parameters:
+        artifactName: Test Results - TimeZoneInfoTests With Emulator - macOS-$(System.JobPositionInPhase)
+        use1ESTemplate: false
+
+    - template: /build-tools/automation/yaml-templates/fail-on-issue.yaml
+
+
+# Localization test jobs
+- stage: test_locals
+  displayName: Test Localization
+  dependsOn: mac_build
+  variables:
+  - group: Xamarin-Secrets
+  - group: xamops-azdev-secrets
+  jobs:
+  - job: mac_localization_tests
+    displayName: Localization Emulator Tests
+    strategy:
+      parallel: 6
+    pool:
+      name: $(SharedMacPool)
+      demands:
+      - macOS.Name -equals $(SharedMacName)
+      - macOS.Architecture -equals x64
+    timeoutInMinutes: 150
+    workspace:
+      clean: all
+    steps:
+    - template: agent-cleanser/v1.yml@yaml-templates
+
+    - template: /build-tools/automation/yaml-templates/setup-test-environment.yaml
+      parameters:
+        installTestSlicer: true
+        xaprepareScenario: EmulatorTestDependencies
+        useAgentJdkPath: false
+        jdkMajorVersion: $(LatestJavaSdkMajorVersion)
+
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        artifactName: $(TestAssembliesArtifactName)
+        downloadPath: $(System.DefaultWorkingDirectory)/bin/Test$(XA.Build.Configuration)
+
+    - template: /build-tools/automation/yaml-templates/start-stop-emulator.yaml
+      parameters:
+        emulatorMSBuildArgs: -p:TestAvdShowWindow=true
+
+    - template: /build-tools/automation/yaml-templates/run-sliced-nunit-tests.yaml
+      parameters:
+        testAssembly: $(System.DefaultWorkingDirectory)/bin/Test$(XA.Build.Configuration)/MSBuildDeviceIntegration/$(DotNetStableTargetFramework)/MSBuildDeviceIntegration.dll
+        testFilter: method == CheckLocalizationIsCorrectWithSlicer
+        testRunTitle: CheckLocalizationIsCorrect On Device - macOS
+
+    - template: /build-tools/automation/yaml-templates/upload-results.yaml
+      parameters:
+        artifactName: Test Results - Localization With Emulator - macOS-$(System.JobPositionInPhase)
+        use1ESTemplate: false
+
+    - template: /build-tools/automation/yaml-templates/fail-on-issue.yaml
+
+
+- stage: compliance_scan
+  displayName: Compliance
+  dependsOn: mac_build
+  condition: and(eq(dependencies.mac_build.result, 'Succeeded'), eq(variables['Build.SourceBranch'], '${{ parameters.ApiScanSourceBranch }}'))
+  jobs:
+  - job: api_scan
+    displayName: API Scan
+    pool:
+      name: MAUI-1ESPT
+      demands: ImageOverride -equals $(WindowsPoolImage1ESPT)
+    timeoutInMinutes: 480
+    workspace:
+      clean: all
+    variables:
+    - name: ApiScanSoftwareName
+      value: VS
+    - name: ApiScanSoftwareVersion
+      value: 17.10
+    steps:
+    - template: /build-tools/automation/yaml-templates/setup-test-environment.yaml
+      parameters:
+        installApkDiff: false
+
+    - task: DownloadPipelineArtifact@2
+      displayName: Download binutils pdbs
+      inputs:
+        artifactName: $(WindowsToolchainPdbArtifactName)
+        downloadPath: $(Build.StagingDirectory)\binutils-pdb
+
+    - powershell: |
+        Expand-Archive "$(Build.StagingDirectory)\binutils-pdb\$(WindowsToolchainPdbArtifactName).zip" "$(System.DefaultWorkingDirectory)\binutils-pdb"
+        Get-ChildItem -Path "$(System.DefaultWorkingDirectory)\binutils-pdb" -Recurse
+      displayName: Extract binutils pdbs
+
+    ### Copy .dll, .exe, .pdb files for APIScan
+    - task: CopyFiles@2
+      displayName: Collect Files for APIScan
+      inputs:
+        Contents: |
+          $(System.DefaultWorkingDirectory)\bin\$(XA.Build.Configuration)\dotnet\packs\Microsoft.Android*\**\?(*.dll|*.exe|*.pdb)
+          $(System.DefaultWorkingDirectory)\binutils-pdb\*.pdb
+        TargetFolder: $(Agent.TempDirectory)\T
+        OverWrite: true
+        flattenFolders: true
+
+    - pwsh: Get-ChildItem -Path "$(Agent.TempDirectory)\T" -Recurse
+      displayName: List Files for APIScan
+
+    ### Run latest version of APIScan listed at https://www.1eswiki.com/wiki/APIScan_Build_Task
+    - task: APIScan@2
+      displayName: Run APIScan
+      inputs:
+        softwareFolder: $(Agent.TempDirectory)\T
+        symbolsFolder: 'SRV*http://symweb;$(Agent.TempDirectory)\T'
+        softwareName: $(ApiScanSoftwareName)
+        softwareVersionNum: $(ApiScanSoftwareVersion)
+        isLargeApp: true
+        toolVersion: Latest
+      env:
+        AzureServicesAuthConnectionString: runAs=App;AppId=$(ApiScanMAUI1ESPTManagedId)
+
+    - task: SdtReport@2
+      displayName: Guardian Export - Security Report
+      inputs:
+        GdnExportAllTools: false
+        GdnExportGdnToolApiScan: true
+        GdnExportOutputSuppressionFile: source.gdnsuppress
+
+    - task: PublishSecurityAnalysisLogs@3
+      displayName: Publish Guardian Artifacts
+      inputs:
+        ArtifactName: APIScan Logs
+        ArtifactType: Container
+        AllTools: false
+        APIScan: true
+        ToolLogsNotFoundAction: Warning
+
+    - task: PostAnalysis@2
+      displayName: Fail Build on Guardian Issues
+      inputs:
+        GdnBreakAllTools: false
+        GdnBreakGdnToolApiScan: true

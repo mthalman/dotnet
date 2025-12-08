@@ -1,0 +1,48 @@
+# Runs a test or set of tests on an emulator running on macOS
+
+parameters:
+  emulatorMSBuildArgs: ''
+  jobName: CheckTimeZoneInfoIsCorrectNode1
+  jobTimeout: 360
+  jdkMajorVersion: $(DefaultJavaSdkMajorVersion)
+  useAgentJdkPath: false
+  testSteps: []
+  use1ESTemplate: true
+
+jobs:
+  - job: mac_${{ parameters.jobName }}_tests
+    displayName: ${{ parameters.jobName }} Emulator Tests
+    pool:
+      name: $(SharedMacPool)
+      demands:
+      - macOS.Name -equals $(SharedMacName)
+      - macOS.Architecture -equals x64
+    timeoutInMinutes: ${{ parameters.jobTimeout }}
+    workspace:
+      clean: all
+    steps:
+    - template: agent-cleanser/v1.yml@yaml-templates
+
+    - template: /build-tools/automation/yaml-templates/setup-test-environment.yaml
+      parameters:
+        xaprepareScenario: EmulatorTestDependencies
+        jdkMajorVersion: ${{ parameters.jdkMajorVersion }}
+        useAgentJdkPath: ${{ parameters.useAgentJdkPath }}
+
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        artifactName: $(TestAssembliesArtifactName)
+        downloadPath: $(System.DefaultWorkingDirectory)/bin/Test$(XA.Build.Configuration)
+
+    - template: /build-tools/automation/yaml-templates/start-stop-emulator.yaml
+      parameters:
+        emulatorMSBuildArgs: ${{ parameters.emulatorMSBuildArgs }}
+
+    - ${{ parameters.testSteps }}
+
+    - template: /build-tools/automation/yaml-templates/upload-results.yaml
+      parameters:
+        artifactName: Test Results - ${{ parameters.jobName }} With Emulator - macOS
+        use1ESTemplate: ${{ parameters.use1ESTemplate }}
+
+    - template: /build-tools/automation/yaml-templates/fail-on-issue.yaml

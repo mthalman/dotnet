@@ -1,0 +1,65 @@
+#!/usr/bin/make -f
+
+build:
+build-arch:
+build-indep:
+override_dh_strip:
+override_dh_auto_configure:
+override_dh_auto_build:
+override_dh_auto_test:
+override_dh_strip_nondeterminism:
+override_dh_makeclilibs:
+	echo "noop"
+
+override_dh_shlibdeps:
+	dh_shlibdeps -X/usr/lib/xamarin.android/xbuild-frameworks/ -X/usr/lib/xamarin.android/xbuild/Xamarin/Android/lib/
+
+override_dh_install:
+	rm -f bin/*/lib/xamarin.android/xbuild/Xamarin/Android/cross-*.exe*
+	rm -f bin/*/lib/xamarin.android/xbuild/Xamarin/Android/*-as.exe*
+	rm -f bin/*/lib/xamarin.android/xbuild/Xamarin/Android/llc.exe
+	rm -f bin/*/lib/xamarin.android/xbuild/Xamarin/Android/opt.exe
+	rm -f bin/*/lib/xamarin.android/xbuild/Xamarin/Android/aapt2.exe
+	rm -f bin/*/lib/xamarin.android/xbuild/Xamarin/Android/libwinpthread-1.dll
+	rm -f bin/*/lib/xamarin.android/xbuild/Xamarin/Android/libZipSharpNative-*.dll
+	rm -f bin/*/lib/xamarin.android/xbuild/Xamarin/Android/runtimes/*/libMono.Unix.so
+
+	dh_install
+
+override_dh_clideps:
+	dh_clideps -X/usr/lib/xamarin.android/xbuild-frameworks/ \
+		--exclude-moduleref=api-ms-win-core-heap-l1-1-0.dll \
+		--exclude-moduleref=api-ms-win-core-timezone-l1-1-0.dll \
+		--exclude-moduleref=BCrypt.dll \
+		--exclude-moduleref=clr.dll \
+		--exclude-moduleref=crypt32.dll \
+		--exclude-moduleref=dbghelp.dll \
+		--exclude-moduleref=fusion \
+		--exclude-moduleref=fusion.dll \
+		--exclude-moduleref=iphlpapi.dll \
+		--exclude-moduleref=java-interop \
+		--exclude-moduleref=libfam.so.0 \
+		--exclude-moduleref=libgamin-1.so.0 \
+		--exclude-moduleref=libmono-btls-shared \
+		--exclude-moduleref=libZipSharpNative \
+		--exclude-moduleref=lzo.dll \
+		--exclude-moduleref=Microsoft.VisualStudio.Setup.Configuration.Native.dll \
+		--exclude-moduleref=mscoree.dll \
+		--exclude-moduleref=mscorwks.dll \
+		--exclude-moduleref=msvcrt \
+		--exclude-moduleref=ntdll.dll \
+		--exclude-moduleref=NTDLL.DLL \
+		--exclude-moduleref=Ole32 \
+		--exclude-moduleref=ole32.dll \
+		--exclude-moduleref=sfc.dll \
+		--exclude-moduleref=sspicli.dll \
+		--exclude-moduleref=wintrust.dll \
+		--exclude-moduleref=/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation \
+		--exclude-moduleref=/System/Library/Frameworks/CoreServices.framework/Frameworks/CFNetwork.framework/CFNetwork \
+		--exclude-moduleref=/System/Library/Frameworks/Security.framework/Security \
+		--exclude-moduleref=/System/Library/Frameworks/SystemConfiguration.framework/SystemConfiguration \
+		--exclude-moduleref=/usr/lib/libSystem.dylib \
+		--exclude-moduleref=__Internal
+
+%:
+	dh $@ --with cli

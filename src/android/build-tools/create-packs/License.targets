@@ -1,0 +1,32 @@
+<!-- Ownership and LICENSE.TXT settings for .nupkg's -->
+<Project>
+  <PropertyGroup>
+    <Authors>Microsoft</Authors>
+    <Copyright>© Microsoft Corporation. All rights reserved.</Copyright>
+    <RepositoryUrl>https://github.com/dotnet/android</RepositoryUrl>
+    <PackageProjectUrl>https://dot.net</PackageProjectUrl>
+    <Owners>microsoft,dotnetframework</Owners>
+    <NuGetLicense Condition="Exists('$(XamarinAndroidSourcePath)external\monodroid\tools\scripts\License.txt')">$(XamarinAndroidSourcePath)external\monodroid\tools\scripts\License.txt</NuGetLicense>
+    <NuGetLicense Condition=" '$(NuGetLicense)' == '' or '$(PackageId)' != 'Microsoft.Android.Sdk.$(HostOS)' ">$(XamarinAndroidSourcePath)LICENSE.TXT</NuGetLicense>
+    <PackageLicenseFile>LICENSE.TXT</PackageLicenseFile>
+    <PackageIcon>Icon.png</PackageIcon>
+    <BeforePack>_GetLicense;$(BeforePack)</BeforePack>
+  </PropertyGroup>
+  <Target Name="_GetLicense">
+    <!-- NuGet doesn't have a way to change the filename of License.txt, so copy it -->
+    <Copy
+        SourceFiles="$(NuGetLicense)"
+        DestinationFiles="$(IntermediateOutputPath)$(PackageLicenseFile)"
+        SkipUnchangedFiles="true"
+    />
+    <!-- Update the LicenseFile path defined in .nuget/packages/microsoft.dotnet.sharedframework.sdk/10.0.0-beta.24476.2/targets/sharedfx.props -->
+    <PropertyGroup>
+      <LicenseFile>$(IntermediateOutputPath)$(PackageLicenseFile)</LicenseFile>
+    </PropertyGroup>
+    <ItemGroup>
+      <_PackageFiles Include="$(IntermediateOutputPath)$(PackageLicenseFile)" PackagePath="\" Condition=" '$(PlatformPackageType)' == '' "/>
+      <_PackageFiles Include="$(XAInstallPrefix)THIRD-PARTY-NOTICES.TXT" PackagePath="\" />
+      <_PackageFiles Include="$(MSBuildThisFileDirectory)Icon.png" PackagePath="\" />
+    </ItemGroup>
+  </Target>
+</Project>

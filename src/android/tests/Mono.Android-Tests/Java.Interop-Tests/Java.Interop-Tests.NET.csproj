@@ -1,0 +1,64 @@
+﻿<Project>
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+  <Import Project="..\..\..\Configuration.props" />
+
+  <PropertyGroup>
+    <TargetFramework>$(DotNetAndroidTargetFramework)</TargetFramework>
+    <SupportedOSPlatformVersion>$(AndroidMinimumDotNetApiLevel)</SupportedOSPlatformVersion>
+    <RootNamespace>Java.Interop_Tests</RootNamespace>
+    <AssemblyName>Java.Interop-Tests</AssemblyName>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>..\..\..\product.snk</AssemblyOriginatorKeyFile>
+    <DefineConstants>$(DefineConstants);NO_MARSHAL_MEMBER_BUILDER_SUPPORT</DefineConstants>
+    <JavaInteropTestDirectory>$(JavaInteropSourceDirectory)\tests\Java.Interop-Tests\</JavaInteropTestDirectory>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Mono.Linq.Expressions" Version="2.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="$(JavaInteropTestDirectory)**\*.cs" Exclude="$(JavaInteropTestDirectory)obj\**;$(JavaInteropTestDirectory)bin\**" />
+    <Compile Remove="$(JavaInteropTestDirectory)Java.Interop\JavaVMFixture.cs" />
+    <Compile Remove="$(JavaInteropTestDirectory)Java.Interop\JniReferenceSafeHandleTest.cs" />
+    <Compile Remove="$(JavaInteropTestDirectory)obj\Release\net7.0-android/designtime/Resource.designer.cs" />
+  </ItemGroup>
+
+  <!-- Some of tests included in the files below fail on CoreCLR. This is PROBABLY caused by managed typemaps, which 
+       will be replaced at some point by a different implementation. Until then, these tests can remain disabled. -->
+  <!-- TODO: put these back when new typemap implementation is available -->
+  <ItemGroup>
+    <Compile Remove="Java.InteropTests\AndroidValueManagerContractTests.cs" />
+    <Compile Remove="$(JavaInteropTestDirectory)Java.Interop\JniRuntime.JniValueManagerTests.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(XamarinAndroidSourcePath)src\Xamarin.Android.NUnitLite\Xamarin.Android.NUnitLite.NET.csproj" />
+    <ProjectReference Include="$(JavaInteropSourceDirectory)\src\Java.Interop.GenericMarshaler\Java.Interop.GenericMarshaler.csproj" />
+  </ItemGroup>
+
+  <!-- Import Microsoft.NET.Sdk targets before our targets so we can override build/clean behavior -->
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+  <Import Project="Java.Interop-Tests.targets" />
+
+  <PropertyGroup>
+    <BuildDependsOn>
+      BuildTestJarFile;
+      _CopyTestJarFiles;
+      $(BuildDependsOn)
+    </BuildDependsOn>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <CleanDependsOn>
+      CleanTestJarFile;
+      $(CleanDependsOn);
+      CleanLocal;
+    </CleanDependsOn>
+  </PropertyGroup>
+
+</Project>

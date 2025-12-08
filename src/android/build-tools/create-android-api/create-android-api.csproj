@@ -1,0 +1,179 @@
+<Project Sdk="Microsoft.Build.NoTargets">
+  <UsingTask AssemblyFile="$(BootstrapTasksAssembly)" TaskName="Xamarin.Android.Tools.BootstrapTasks.RunParallelCmds" />
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+  
+  <Import Project="..\..\Configuration.props" />
+  <Import Project="..\..\bin\Build$(Configuration)\Mono.Android.Apis.projitems" Condition="Exists('..\..\bin\Build$(Configuration)\Mono.Android.Apis.projitems')"/>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\external\Java.Interop\tools\class-parse\class-parse.csproj" ReferenceOutputAssembly="False" />
+    <ProjectReference Include="..\..\external\Java.Interop\tools\param-name-importer\param-name-importer.csproj" ReferenceOutputAssembly="False" />
+    <ProjectReference Include="..\api-xml-adjuster\api-xml-adjuster.csproj" ReferenceOutputAssembly="False" />
+    <ProjectReference Include="..\api-merge\api-merge.csproj" ReferenceOutputAssembly="False" />
+    <ProjectReference Include="..\jnienv-gen\jnienv-gen.csproj" ReferenceOutputAssembly="False" SkipGetTargetFrameworkProperties="True" />
+  </ItemGroup>
+  
+  <PropertyGroup>
+    <_OutputPath>$(XamarinAndroidSourcePath)\bin\Build$(Configuration)\</_OutputPath>
+  </PropertyGroup>
+
+  <!-- First we need to figure out all the needed API levels.
+       This is done by looking at which levels are included in 'Mono.Android.Apis.projitems'
+       and looking for matching 'api-X.params.txt' files. -->
+  <Target Name="_DefineApiFiles">
+    <ItemGroup>
+      <_Api
+          Condition=" Exists('$(XamarinAndroidSourcePath)\src\Mono.Android\Profiles\api-%(AndroidApiInfo.Id).params.txt') "
+          Include="@(AndroidApiInfo)">
+      </_Api>
+    </ItemGroup>
+    
+    <CreateItem Include="@(_Api)"
+        AdditionalMetadata="ParameterDescription=$(XamarinAndroidSourcePath)\src\Mono.Android\Profiles\api-%(_Api.Id).params.txt;ClassParseXml=$(_OutputPath)api\api-%(_Api.Id).xml.class-parse;ApiAdjustedXml=$(_OutputPath)api\api-%(_Api.Id).xml.in;MergedXml=$(_OutputPath)api\api-%(_Api.Id).xml">
+      <Output TaskParameter="Include" ItemName="ApiFileDefinition"/>
+    </CreateItem>
+    
+    <!-- We don't generate 'api.xml' files for older API levels we no longer ship -->
+    <ItemGroup>
+      <_MergedXmlFiles
+          Condition=" %(ApiFileDefinition.Level) >= 34  "
+          Include="@(ApiFileDefinition)" />
+    </ItemGroup>
+  </Target>
+
+  <!-- Next we need to run class-parse on each platform's 'android.jar' in order
+       to produce the 'api-X.xml.class-parse' files. -->
+  <Target Name="_ClassParse"
+      BeforeTargets="_AdjustApiXml"
+      DependsOnTargets="_DefineApiFiles"
+      Inputs="@(ApiFileDefinition->'%(ParameterDescription)')"
+      Outputs="@(ApiFileDefinition->'%(ClassParseXml)')">
+      
+    <PropertyGroup>
+      <ClassParse>$(MicrosoftAndroidSdkOutDir)class-parse.dll</ClassParse>
+    </PropertyGroup>
+    
+    <ItemGroup>
+      <_ClassParseCommands
+          Condition="Exists('$(XamarinAndroidSourcePath)\src\Mono.Android\Profiles\api-%(ApiFileDefinition.Id).params.txt')"
+          Include="@(ApiFileDefinition)">
+        <Command>$(DotNetPreviewTool)</Command>
+        <Arguments>$(ClassParse) $(AndroidSdkDirectory)\platforms\android-%(ApiFileDefinition.Id)\android.jar -platform=%(ApiFileDefinition.Id) -parameter-names=&quot;%(ApiFileDefinition.ParameterDescription)&quot; -o=&quot;%(ApiFileDefinition.ClassParseXml)&quot;</Arguments>
+      </_ClassParseCommands>
+    </ItemGroup>
+    
+    <MakeDir Directories="$(_OutputPath)api" />
+    
+    <RunParallelCmds
+        Commands="@(_ClassParseCommands)"
+      />
+  </Target>
+  
+  <!-- Run api-xml-adjuster on each 'api-X.xml.class-parse' file, which runs some fixups
+       on the Java API and marks overrides, producing 'api-X.xml.in' files. -->
+  <Target Name="_AdjustApiXml"
+      DependsOnTargets="_DefineApiFiles"
+      Inputs="@(ApiFileDefinition->'%(ClassParseXml)')"
+      Outputs="@(ApiFileDefinition->'%(ApiAdjustedXml)')">
+
+    <PropertyGroup>
+      <ApiXmlAdjuster>$(XamarinAndroidSourcePath)\bin\Build$(Configuration)\api-xml-adjuster.dll</ApiXmlAdjuster>
+    </PropertyGroup>
+    
+    <ItemGroup>
+      <_AdjustApiXmlPrepareCommands
+          Condition="Exists('$(XamarinAndroidSourcePath)\src\Mono.Android\Profiles\api-%(ApiFileDefinition.Id).params.txt')"
+          Include="@(ApiFileDefinition)">
+        <Command>$(DotNetPreviewTool)</Command>
+        <Arguments>$(ApiXmlAdjuster) %(ApiFileDefinition.ClassParseXml) %(ApiFileDefinition.ApiAdjustedXml)</Arguments>
+      </_AdjustApiXmlPrepareCommands>
+    </ItemGroup>
+
+    <RunParallelCmds
+        Commands="@(_AdjustApiXmlPrepareCommands)"
+      />
+  </Target>
+  
+  <!-- Merges various 'api-X.xml.in' files into single 'api.xml' file -->
+  <Target Name="GenerateApiDescription"
+      DependsOnTargets="_AdjustApiXml"
+      Inputs="@(ApiFileDefinition->'%(ApiAdjustedXml)')"
+      Outputs="@(_MergedXmlFiles->'%(MergedXml)')">
+    
+    <PropertyGroup>
+      <ApiMerge>$(MSBuildThisFileDirectory)..\..\bin\Build$(Configuration)\api-merge.dll</ApiMerge>
+      <_ConfigurationFile>$(MSBuildThisFileDirectory)..\api-merge\merge-configuration.xml</_ConfigurationFile>
+      <_ConfigurationInputBaseDirectory>$(MSBuildThisFileDirectory)..\..\bin\Build$(Configuration)\api\</_ConfigurationInputBaseDirectory>
+      <_ConfigurationOutputBaseDirectory>$(MSBuildThisFileDirectory)..\..\bin\Build$(Configuration)\api\</_ConfigurationOutputBaseDirectory>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <_ApiMergeArg Include="-config=$(_ConfigurationFile)" />
+      <_ApiMergeArg Include="-config-input-dir=$(_ConfigurationInputBaseDirectory)" />
+      <_ApiMergeArg Include="-config-output-dir=$(_ConfigurationOutputBaseDirectory)" />
+    </ItemGroup>
+    
+    <Exec
+        Command="&quot;$(DotNetPreviewTool)&quot; &quot;$(ApiMerge)&quot; @(_ApiMergeArg->'&quot;%(Identity)&quot;', ' ')" />
+    
+    <ItemGroup>
+      <_GeneratedApiDescriptionFiles Include="$(_ConfigurationOutputBaseDirectory)*.xml" />
+    </ItemGroup>
+    
+    <Copy SourceFiles="@(_GeneratedApiDescriptionFiles)" DestinationFolder="..\..\src\Mono.Android\Profiles\" />
+  </Target>
+  
+  <!-- Creates 'api-XX.params.txt' file -->
+  <!-- Unstable: dotnet-local.cmd build build-tools/create-android-api -t:GenerateParamsFile -p:ParamApiLevel=VanillaIceCream -->
+  <!-- Stable: dotnet-local.cmd build build-tools/create-android-api -t:GenerateParamsFile -p:ParamApiLevel=35 -->
+  <Target Name="GenerateParamsFile">    
+    
+    <PropertyGroup>
+      <_JavaSourceUtilsJar>$(MicrosoftAndroidSdkOutDir)\java-source-utils.jar</_JavaSourceUtilsJar>
+      <_SourceStubZip>$(AndroidSdkDirectory)\platforms\android-$(ParamApiLevel)\android-stubs-src.jar</_SourceStubZip>
+      <_ParamOutputTextFile>$(MSBuildThisFileDirectory)..\..\src\Mono.Android\Profiles\api-$(ParamApiLevel).params.txt</_ParamOutputTextFile>
+      <_TmpDir Condition=" '$(TMPDIR)' != '' ">$(TMPDIR)</_TmpDir>
+      <_TmpDir Condition=" '$(_TmpDir)' == '' ">$(TEMP)</_TmpDir>
+      <_ParamOutputJavadoc>$(_TmpDir)\api-$(ParamApiLevel).javadoc.xml</_ParamOutputJavadoc>
+    </PropertyGroup>
+    
+    <ItemGroup>
+      <_JsuArg Include="--output-params" />
+      <_JsuArg Include="$(_ParamOutputTextFile)" />
+      <_JsuArg Include="--output-javadoc" />
+      <_JsuArg Include="$(_ParamOutputJavadoc)" />
+      <_JsuArg Include="-v" />
+      <_JsuArg Include="$(_SourceStubZip)" />
+    </ItemGroup>
+
+    <Exec
+        Command="&quot;$(JavaPath)&quot; -jar &quot;$(_JavaSourceUtilsJar)&quot; @(_JsuArg->'&quot;%(Identity)&quot;', ' ')" />
+
+    <Delete Files="$(_ParamOutputJavadoc)" />
+  </Target>
+  
+  <!-- Generates 'JNIEnv.g.cs' file. We do this here because it should only run once, not per-TF.  -->
+  <Target Name="_BuildJNIEnv"
+      BeforeTargets="Build"
+      Inputs="..\..\bin\Build$(Configuration)\jnienv-gen.dll"
+      Outputs="../../src/Mono.Android/Android.Runtime/JNIEnv.g.cs">
+    <Exec
+        Command="&quot;$(DotNetPreviewTool)&quot; &quot;../../bin/Build$(Configuration)/jnienv-gen.dll&quot; -o ../../src/Mono.Android/Android.Runtime/JNIEnv.g.cs --use-java-interop"
+    />
+    <Touch Files="../../src/Mono.Android/Android.Runtime/JNIEnv.g.cs" />
+  </Target>
+
+  <!-- Clean up generated API files -->
+  <Target Name="_CleanApiXml"
+      BeforeTargets="Clean"
+      DependsOnTargets="_DefineApiFiles">
+
+    <Delete Files="%(ApiFileDefinition.ApiAdjustedXml)" />
+    <Delete Files="%(ApiFileDefinition.ClassParseXml)" />
+    <Delete Files="%(_MergedXmlFiles.MergedXml)" />
+  </Target>
+  
+</Project>

@@ -1,0 +1,140 @@
+parameters:
+  buildResultArtifactName: Build Results - Linux
+  checkoutCommit: ''
+  checkoutPath: 's/android'
+  xaSourcePath: $(System.DefaultWorkingDirectory)/android
+  checkoutPersistCredentials: false
+  dependsOn: ''
+  dependsOnResult: ''
+  jobName: linux_build_create_sdk_pack
+  jobDisplayName: Linux > Build
+  nugetArtifactName: $(LinuxNuGetArtifactName)
+  repositoryAlias: self
+  stageName: linux_build
+  stageDisplayName: Linux
+  use1ESTemplate: true
+
+stages:
+- stage: ${{ parameters.stageName }}
+  displayName: ${{ parameters.stageDisplayName }}
+  dependsOn: ${{ parameters.dependsOn }}
+  ${{ if and(ne(parameters.dependsOn, ''), ne(parameters.dependsOnResult, '')) }}:
+    condition: eq(dependencies.${{ parameters.dependsOn }}.result, '${{ parameters.dependsOnResult }}')
+  jobs:
+  # Check - "Xamarin.Android (Linux Linux > Build)"
+  - job: ${{ parameters.jobName }}
+    displayName: ${{ parameters.jobDisplayName }}
+    pool:
+      name: MAUI-1ESPT
+      image: $(LinuxPoolImage1ESPT)
+      os: linux
+    timeoutInMinutes: 240
+    workspace:
+      clean: all
+    variables:
+      CXX: g++-10
+      CC: gcc-10
+    ${{ if eq(parameters.use1ESTemplate, true) }}:
+      templateContext:
+        outputs:
+        - output: pipelineArtifact
+          displayName: upload linux sdk
+          artifactName: ${{ parameters.nugetArtifactName }}
+          targetPath: ${{ parameters.xaSourcePath }}/bin/Build$(XA.Build.Configuration)/nuget-linux
+        - output: pipelineArtifact
+          displayName: upload linux sdk symbols
+          artifactName: ${{ parameters.nugetArtifactName }}-symbols
+          targetPath: ${{ parameters.xaSourcePath }}/bin/Build$(XA.Build.Configuration)/nuget-linux-symbols
+    steps:
+    - template: sdk-unified/steps/checkout/v1.yml@yaml-templates
+      parameters:
+        resource: ${{ parameters.repositoryAlias }}
+        commit: ${{ parameters.checkoutCommit }}
+        path: ${{ parameters.checkoutPath }}
+        persistCredentials: ${{ parameters.checkoutPersistCredentials }}
+
+    # Always checkout a second resource to ensure we are using multi-repo checkout behavior
+    #  https://learn.microsoft.com/en-us/azure/devops/pipelines/repos/multi-repo-checkout?view=azure-devops#checkout-path
+    - checkout: maui
+
+    - template: /build-tools/automation/yaml-templates/setup-jdk-variables.yaml
+      parameters:
+        useAgentJdkPath: false
+        jdkMajorVersion: $(LatestJavaSdkMajorVersion)
+
+    - template: /build-tools/automation/yaml-templates/use-dot-net.yaml
+      parameters:
+        remove_dotnet: true
+
+    - ${{ if ne(variables['System.PullRequest.IsFork'], 'True') }}:
+      - checkout: android-platform-support
+        clean: true
+        submodules: recursive
+        path: s/android/external/android-platform-support
+        persistCredentials: true
+
+      - script: make prepare-external-git-dependencies PREPARE_CI=1 CONFIGURATION=$(XA.Build.Configuration)
+        workingDirectory: ${{ parameters.xaSourcePath }}
+        displayName: make prepare-external-git-dependencies
+
+    - task: NuGetAuthenticate@1
+      displayName: authenticate with azure artifacts
+      inputs:
+        forceReinstallCredentialProvider: true
+
+    - script: make jenkins PREPARE_CI=1 PREPARE_AUTOPROVISION=1 CONFIGURATION=$(XA.Build.Configuration)
+      workingDirectory: ${{ parameters.xaSourcePath }}
+      displayName: make jenkins
+
+    - script: make create-nupkgs CONFIGURATION=$(XA.Build.Configuration)
+      workingDirectory: ${{ parameters.xaSourcePath }}
+      displayName: make create-nupkgs
+
+    - task: CopyFiles@2
+      inputs:
+        SourceFolder: ${{ parameters.xaSourcePath }}/bin/Build$(XA.Build.Configuration)/nuget-unsigned
+        Contents: |
+          **/Microsoft.Android.Sdk.Linux*.symbols.nupkg
+          **/SignList.xml
+        TargetFolder: ${{ parameters.xaSourcePath }}/bin/Build$(XA.Build.Configuration)/nuget-linux-symbols
+
+    - task: DeleteFiles@1
+      inputs:
+        SourceFolder: ${{ parameters.xaSourcePath }}/bin/Build$(XA.Build.Configuration)/nuget-unsigned
+        Contents: '*.symbols.nupkg'
+
+    - script: >
+        df -h &&
+        mkdir -p ${{ parameters.xaSourcePath }}/bin/Build$(XA.Build.Configuration)/nuget-linux &&
+        ln ${{ parameters.xaSourcePath }}/bin/Build$(XA.Build.Configuration)/nuget-unsigned/Microsoft.Android.Sdk.Linux*.nupkg
+        ${{ parameters.xaSourcePath }}/bin/Build$(XA.Build.Configuration)/nuget-linux &&
+        ln ${{ parameters.xaSourcePath }}/bin/Build$(XA.Build.Configuration)/nuget-unsigned/SignList.xml
+        ${{ parameters.xaSourcePath }}/bin/Build$(XA.Build.Configuration)/nuget-linux
+      workingDirectory: ${{ parameters.xaSourcePath }}
+      displayName: copy linux sdk
+
+    - ${{ if ne(parameters.use1ESTemplate, true) }}:
+      - task: PublishPipelineArtifact@1
+        displayName: upload linux sdk
+        inputs:
+          artifactName: ${{ parameters.nugetArtifactName }}
+          targetPath: ${{ parameters.xaSourcePath }}/bin/Build$(XA.Build.Configuration)/nuget-linux
+
+      - task: PublishPipelineArtifact@1
+        displayName: upload linux sdk symbols
+        inputs:
+          artifactName: ${{ parameters.nugetArtifactName }}-symbols
+          targetPath: ${{ parameters.xaSourcePath }}/bin/Build$(XA.Build.Configuration)/nuget-linux-symbols
+
+    - template: /build-tools/automation/yaml-templates/upload-results.yaml
+      parameters:
+        xaSourcePath: ${{ parameters.xaSourcePath }}
+        artifactName: ${{ parameters.buildResultArtifactName }}
+        includeBuildResults: true
+        use1ESTemplate: ${{ parameters.use1ESTemplate }}
+
+    - template: /build-tools/automation/yaml-templates/fail-on-dirty-tree.yaml
+      parameters:
+        xaSourcePath: ${{ parameters.xaSourcePath }}
+
+    - template: /build-tools/automation/yaml-templates/fail-on-issue.yaml

@@ -1,0 +1,11 @@
+{
+  "codebaseName": "dotnet.android_main",
+  "notificationAliases": [
+      "dotnet-android-eng@microsoft.com"
+  ],
+  "instanceUrl": "https://devdiv.visualstudio.com/",
+  "projectName": "DevDiv",
+  "areaPath": "DevDiv\\.NET MAUI\\Android",
+  "iterationPath": "DevDiv",
+  "allTools": true
+}

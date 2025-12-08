@@ -1,0 +1,84 @@
+using System.IO;
+using NUnit.Framework;
+using Xamarin.Android.Tasks;
+using Xamarin.ProjectTools;
+
+namespace Xamarin.Android.Build.Tests
+{
+	[TestFixture]
+	public class WearTests : BaseTest
+	{
+		[Test]
+		public void BasicProject ([Values] bool isRelease, [Values] AndroidRuntime runtime)
+		{
+			if (IgnoreUnsupportedConfiguration (runtime, release: isRelease)) {
+				return;
+			}
+			var proj = new XamarinAndroidWearApplicationProject {
+				IsRelease = isRelease,
+			};
+			proj.SetRuntime (runtime);
+			using (var b = CreateApkBuilder ()) {
+				Assert.IsTrue (b.Build (proj), "Build should have succeeded.");
+			}
+		}
+
+		[Test]
+		public void BundledWearApp ([Values] AndroidRuntime runtime)
+		{
+			bool isRelease = runtime == AndroidRuntime.NativeAOT;
+			if (IgnoreUnsupportedConfiguration (runtime, release: isRelease)) {
+				return;
+			}
+
+			var path = Path.Combine ("temp", TestName);
+			var app = new XamarinAndroidApplicationProject {
+				IsRelease = isRelease,
+				ProjectName = "MyApp",
+				EmbedAssembliesIntoApk = true,
+			};
+			app.SetRuntime (runtime);
+
+			var wear = new XamarinAndroidWearApplicationProject {
+				EmbedAssembliesIntoApk = true,
+			};
+			app.References.Add (new BuildItem.ProjectReference ($"..\\{wear.ProjectName}\\{wear.ProjectName}.csproj", wear.ProjectName, wear.ProjectGuid) {
+				MetadataValues = "IsAppExtension=True"
+			});
+
+			using (var wearBuilder = CreateDllBuilder (Path.Combine (path, wear.ProjectName)))
+			using (var appBuilder = CreateApkBuilder (Path.Combine (path, app.ProjectName))) {
+				Assert.IsTrue (wearBuilder.Build (wear), "first wear build should have succeeded.");
+				appBuilder.ThrowOnBuildFailure = false;
+				Assert.IsFalse (appBuilder.Build (app), "'dotnet' app build should have failed.");
+				StringAssertEx.Contains ($"error XA4312", appBuilder.LastBuildOutput, "Error should be XA4312");
+			}
+		}
+
+		[Test]
+		public void WearProjectJavaBuildFailure ([Values] AndroidRuntime runtime)
+		{
+			const bool isRelease = true;
+			if (IgnoreUnsupportedConfiguration (runtime, release: isRelease)) {
+				return;
+			}
+
+			var proj = new XamarinAndroidApplicationProject {
+				IsRelease = isRelease,
+				EnableDefaultItems = true,
+				PackageReferences = {
+					KnownPackages.XamarinAndroidXWear,
+					new Package { Id = "Xamarin.Android.Wear", Version = "2.2.0" },
+					new Package { Id = "Xamarin.AndroidX.PercentLayout", Version = "1.0.0.14" },
+					new Package { Id = "Xamarin.AndroidX.Legacy.Support.Core.UI", Version = "1.0.0.14" },
+				},
+				SupportedOSPlatformVersion = "23",
+			};
+			proj.SetRuntime (runtime);
+			var builder = CreateApkBuilder ();
+			builder.ThrowOnBuildFailure = false;
+			Assert.IsFalse (builder.Build (proj), $"{proj.ProjectName} should fail.");
+			Assert.IsTrue (StringAssertEx.ContainsText (builder.LastBuildOutput, "error XA1039"), "Should receive error XA1039");
+		}
+	}
+}

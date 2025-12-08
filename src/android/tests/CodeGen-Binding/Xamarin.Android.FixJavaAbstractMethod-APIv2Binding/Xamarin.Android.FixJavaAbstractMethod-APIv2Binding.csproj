@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>$(DotNetAndroidTargetFramework)</TargetFramework>
+    <RootNamespace>APIv2Binding</RootNamespace>
+    <AssemblyName>Xamarin.Android.FixJavaAbstractMethod-Binding</AssemblyName>
+  </PropertyGroup>
+  <Import Project="..\..\..\Configuration.props" />
+  <ItemGroup>
+    <TestJarEntry Include="java\test\bindings\Cursor.java">
+      <OutputFile>Jars/Cursor.jar</OutputFile>
+    </TestJarEntry>
+  </ItemGroup>
+  <Import Project="..\..\..\build-tools\scripts\Jar.targets" />
+  <Import Project="Xamarin.Android.FixJavaAbstractMethod-APIv2Binding.targets" />
+  <PropertyGroup>
+    <BuildDependsOn>
+      BuildTestJarFile;
+      $(BuildDependsOn)
+    </BuildDependsOn>
+  </PropertyGroup>
+  <PropertyGroup>
+    <CleanDependsOn>
+      CleanTestJarFile;
+      $(CleanDependsOn);
+      CleanLocal;
+    </CleanDependsOn>
+  </PropertyGroup>
+</Project>

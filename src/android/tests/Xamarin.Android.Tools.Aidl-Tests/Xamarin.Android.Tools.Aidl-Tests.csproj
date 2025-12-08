@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(DotNetStableTargetFramework)</TargetFramework>
+    <RootNamespace>Xamarin.Android.Tools.Aidl_Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <Import Project="..\..\Configuration.props" />
+  <Import Project="..\..\build-tools\scripts\NUnitReferences.projitems" />
+
+  <PropertyGroup>
+    <OutputPath>..\..\bin\Test$(Configuration)</OutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Update="TestData/*.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Xamarin.Android.Tools.Aidl\Xamarin.Android.Tools.Aidl.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Mono.Cecil" Version="$(MonoCecilVersion)" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Target Name="_GetJavacVersions"
+      DependsOnTargets="AndroidPrepareForBuild">
+    <PropertyGroup>
+      <JarPath Condition=" '$(JarPath)' == '' ">$(JavaSdkDirectory)\bin\jar</JarPath>
+      <JavaCPath Condition=" '$(JavaCPath)' == '' ">$(JavaSdkDirectory)\bin\javac</JavaCPath>
+    </PropertyGroup>
+  </Target>
+  <Target Name="_GetJavaInteropJarPath">
+    <PropertyGroup>
+      <_JIJar_InTree>$([System.IO.Path]::GetFullPath ('$(XAInstallPrefix)'))\xbuild\Xamarin\Android\java-interop.jar</_JIJar_InTree>
+      <_JIJar_System Condition=" '$(_XamarinAndroidMSBuildDirectory)' != '' ">$(_XamarinAndroidMSBuildDirectory)\java-interop.jar</_JIJar_System>
+      <_JavaInteropJarPath Condition=" Exists($(_JIJar_InTree)) ">$(_JIJar_InTree)</_JavaInteropJarPath>
+      <_JavaInteropJarPath Condition=" '$(_JavaInteropJarPath)' == '' ">$(_JIJar_System)</_JavaInteropJarPath>
+    </PropertyGroup>
+    <Error
+        Condition=" '$(_JavaInteropJarPath)' == '' "
+        Text="Could not determine path to `java-interop.jar`."
+    />
+  </Target>
+  <Target Name="BuildTestJarFile"
+      DependsOnTargets="_GetJavacVersions;_GetJavaInteropJarPath"
+      Inputs="@(TestJarEntry)"
+      Outputs="%(TestJarEntry.OutputFile)">
+    <ItemGroup>
+      <_JavacSource
+          Include="@(TestJarEntry)"
+      />
+    </ItemGroup>
+    <PropertyGroup>
+      <_Javac>"$(JavaCPath)"</_Javac>
+      <_Jar>"$(JarPath)"</_Jar>
+      <_Targets>-source $(JavacSourceVersion) -target $(JavacTargetVersion)</_Targets>
+      <_DestDir>$(IntermediateOutputPath)__CreateTestJarFile-bin</_DestDir>
+      <_AndroidJar>-classpath "$(AndroidSdkDirectory)\platforms\android-$(_AndroidApiLevelName)\android.jar"</_AndroidJar>
+      <_CP>-cp "$(_JavaInteropJarPath)"</_CP>
+      <_JavacFilesResponse>$(IntermediateOutputPath)__javac_response.txt</_JavacFilesResponse>
+    </PropertyGroup>
+    <WriteLinesToFile
+        File="$(_JavacFilesResponse)"
+        Lines="@(_JavacSource)"
+        Overwrite="True"
+    />
+    <MakeDir Directories="$(_DestDir)" />
+    <Exec Command="$(_Javac) $(_Targets) -d &quot;$(_DestDir)&quot; $(_AndroidJar) $(_CP) &quot;@$(_JavacFilesResponse)&quot;" />
+    <Delete Files="$(_JavacFilesResponse)" />
+    <Exec
+        Command="$(_Jar) cf &quot;classes.jar&quot; ."
+        WorkingDirectory="$(_DestDir)"
+    />
+    <Copy
+        SourceFiles="$(_DestDir)\classes.jar"
+        DestinationFiles="%(TestJarEntry.OutputFile)"
+    />
+    <RemoveDir Directories="$(_DestDir)" />
+  </Target>
+  <Target Name="CleanTestJarFile">
+    <Delete Files="%(TestJarEntry.OutputFile)" />
+  </Target>
+</Project>

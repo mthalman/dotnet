@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.Build.NoTargets">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+  <Import Project="$(MSBuildThisFileDirectory)..\..\..\..\Configuration.props" />
+  <Import Project="$(MSBuildThisFileDirectory)..\..\..\..\build-tools\scripts\TestApks.targets" />
+</Project>

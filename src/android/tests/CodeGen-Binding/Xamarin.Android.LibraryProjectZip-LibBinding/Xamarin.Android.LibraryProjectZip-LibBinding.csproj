@@ -1,0 +1,35 @@
+<Project>
+  <Import Sdk="Microsoft.NET.Sdk" Project="Sdk.props" />
+  <PropertyGroup>
+    <TargetFramework>$(DotNetAndroidTargetFramework)</TargetFramework>
+    <RootNamespace>Xamarin.Android.LibraryProjectZip.LibBinding</RootNamespace>
+    <AssemblyName>AndroidLibBinding</AssemblyName>
+  </PropertyGroup>
+  <Import Project="..\..\..\Configuration.props" />
+  <Import Sdk="Microsoft.NET.Sdk" Project="Sdk.targets" />
+  <Import Project="Xamarin.Android.LibraryProjectZip-LibBinding.targets" />
+  <PropertyGroup>
+    <BuildDependsOn>
+      BuildNativeLibs;
+      BuildNativeLibs2;
+      BuildJavaLibs;
+      $(BuildDependsOn)
+    </BuildDependsOn>
+  </PropertyGroup>
+  <ItemGroup>
+    <AndroidLibrary Remove="java\JavaLib\**" />
+    <AndroidJavaSource Remove="java\JavaLib\**" />
+    <LibraryProjectZip Include="$(OutputPath)JavaLib.aar" />
+  </ItemGroup>
+  <ItemGroup>
+    <InputJar Include="java\JavaLib\library\build\intermediates\aar_main_jar\debug\classes.jar">
+      <Link>Jars\classes.jar</Link>
+    </InputJar>
+  </ItemGroup>
+  <PropertyGroup>
+    <CleanDependsOn>
+      $(CleanDependsOn);
+      CleanLocal;
+    </CleanDependsOn>
+  </PropertyGroup>
+</Project>

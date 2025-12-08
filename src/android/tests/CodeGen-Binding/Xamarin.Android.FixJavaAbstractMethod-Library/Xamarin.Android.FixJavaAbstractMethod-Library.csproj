@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>$(DotNetAndroidTargetFramework)</TargetFramework>
+    <RootNamespace>Library</RootNamespace>
+    <AssemblyName>Xamarin.Android.FixJavaAbstractMethod-Library</AssemblyName>
+  </PropertyGroup>
+  <Import Project="..\..\..\Configuration.props" />
+  <ItemGroup>
+    <ProjectReference Include="..\Xamarin.Android.FixJavaAbstractMethod-APIv1Binding\Xamarin.Android.FixJavaAbstractMethod-APIv1Binding.csproj" />
+  </ItemGroup>
+</Project>

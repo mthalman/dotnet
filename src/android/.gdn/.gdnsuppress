@@ -1,0 +1,134 @@
+{
+  "hydrated": false,
+  "properties": {
+    "helpUri": "https://eng.ms/docs/microsoft-security/security/azure-security/cloudai-security-fundamentals-engineering/security-integration/guardian-wiki/microsoft-guardian/general/suppressions",
+    "hydrationStatus": "This file does not contain identifying data. It is safe to check into your repo. To hydrate this file with identifying data, run `guardian hydrate --help` and follow the guidance."
+  },
+  "version": "1.0.0",
+  "suppressionSets": {
+    "default": {
+      "name": "default",
+      "createdDate": "2024-02-21 20:58:02Z",
+      "lastUpdatedDate": "2025-01-22 01:00:00Z"
+    }
+  },
+  "results": {
+    "900efdc86dc2e568955f256c15344038d504db1c7cc819beee79a0e83e729285": {
+      "signature": "900efdc86dc2e568955f256c15344038d504db1c7cc819beee79a0e83e729285",
+      "alternativeSignatures": [],
+      "memberOf": [
+        "default"
+      ],
+      "justification": "FillEventHistory+Event API documentation with generic example password.",
+      "createdDate": "2024-06-27 20:43:25Z"
+    },
+    "546ee3b1e3df455989e1689c68bd5bebabe5b191c680b15ba02ee5f71bf4354c": {
+      "signature": "546ee3b1e3df455989e1689c68bd5bebabe5b191c680b15ba02ee5f71bf4354c",
+      "alternativeSignatures": [],
+      "memberOf": [
+        "default"
+      ],
+      "justification": "Android.Service.Autofill.FillEventHistory+Event API documentation with generic example password.",
+      "createdDate": "2024-06-27 20:43:25Z"
+    },
+    "dc29fa2c200acb75acd13ef4da8a4139fb37618e4072f5ee06a40e07e3b31b95": {
+      "signature": "dc29fa2c200acb75acd13ef4da8a4139fb37618e4072f5ee06a40e07e3b31b95",
+      "alternativeSignatures": [],
+      "memberOf": [
+        "default"
+      ],
+      "justification": "Javax.Crypto.ISecretKey API documentation with generic example password.",
+      "createdDate": "2024-06-27 20:43:25Z"
+    },
+    "85ecf4cad9f76c3946ce6105b708ca822142bd1f1ac4092164f48af5923ca1f1": {
+      "signature": "85ecf4cad9f76c3946ce6105b708ca822142bd1f1ac4092164f48af5923ca1f1",
+      "alternativeSignatures": [],
+      "memberOf": [
+        "default"
+      ],
+      "justification": "Javax.Security.Auth.Callback.PasswordCallback API documentation with generic example password.",
+      "createdDate": "2024-06-27 20:43:25Z"
+    },
+    "1ccf925aa704efd1035bac38e94d2e629fb5b0d1784d5473e4a52e6d13db16ee": {
+      "signature": "1ccf925aa704efd1035bac38e94d2e629fb5b0d1784d5473e4a52e6d13db16ee",
+      "alternativeSignatures": [],
+      "memberOf": [
+        "default"
+      ],
+      "justification": "Dummy test.keystore file used for testing.",
+      "createdDate": "2024-02-21 20:58:02Z"
+    },
+    "ad733d624486984da63461d2a23f266714f76e1788c271d90d45687579f51099": {
+      "signature": "ad733d624486984da63461d2a23f266714f76e1788c271d90d45687579f51099",
+      "alternativeSignatures": [],
+      "memberOf": [
+        "default"
+      ],
+      "justification": "release.keystore file created during test run.",
+      "createdDate": "2024-06-14 18:52:00Z"
+    },
+    "e10f89d02383ffef3bdbf9c048a9e0f3bdab956a8e6e49817780b0c837a5bd6d": {
+      "signature": "e10f89d02383ffef3bdbf9c048a9e0f3bdab956a8e6e49817780b0c837a5bd6d",
+      "alternativeSignatures": [],
+      "memberOf": [
+        "default"
+      ],
+      "justification": "False positive in linker-dependencies.xml file.",
+      "createdDate": "2024-06-14 18:52:00Z"
+    },
+    "e73b15633b7cb1e9e735ce0fe78a6ce3c95c11a8888181eb3b0cb50c191da19e": {
+      "signature": "e73b15633b7cb1e9e735ce0fe78a6ce3c95c11a8888181eb3b0cb50c191da19e",
+      "alternativeSignatures": [],
+      "memberOf": [
+        "default"
+      ],
+      "justification": "False positive in linker-dependencies.xml file.",
+      "createdDate": "2024-06-14 18:52:00Z"
+    },
+    "e622e6a9a73c1856d399e753105be517d62ec1e62d13a15ab9ecef43e15590a9": {
+      "signature": "e622e6a9a73c1856d399e753105be517d62ec1e62d13a15ab9ecef43e15590a9",
+      "alternativeSignatures": [],
+      "memberOf": [
+        "default"
+      ],
+      "justification": "False positive in linker-dependencies.xml file.",
+      "createdDate": "2024-06-14 18:52:00Z"
+    },
+    "df428be5ce5ef90685e15981cf49e2af10de6d87544f437aa1722f84516d6fef": {
+      "signature": "df428be5ce5ef90685e15981cf49e2af10de6d87544f437aa1722f84516d6fef",
+      "alternativeSignatures": [],
+      "memberOf": [
+        "default"
+      ],
+      "justification": "False positive in linker-dependencies.xml file.",
+      "createdDate": "2024-06-14 18:52:00Z"
+    },
+    "247325bc1f0ff6899ae09b13e006ac35c7cae4ffee0749f139fd5100f85a162f": {
+      "signature": "247325bc1f0ff6899ae09b13e006ac35c7cae4ffee0749f139fd5100f85a162f",
+      "alternativeSignatures": [],
+      "memberOf": [
+        "default"
+      ],
+      "justification": "False positive in linker-dependencies.xml file.",
+      "createdDate": "2024-06-14 18:52:00Z"
+    },
+    "6d53f09942503c3f7eeccf23af43ae976431e8dbf2ad3d32be8af5bd37068d4d": {
+      "signature": "6d53f09942503c3f7eeccf23af43ae976431e8dbf2ad3d32be8af5bd37068d4d",
+      "alternativeSignatures": [],
+      "memberOf": [
+        "default"
+      ],
+      "justification": "False positive in linker-dependencies.xml file.",
+      "createdDate": "2024-06-14 18:52:00Z"
+    },
+    "650586d5e7851e9a2d6ed6f324227d7da625626165af8aef394785573ee3ab55": {
+      "signature": "650586d5e7851e9a2d6ed6f324227d7da625626165af8aef394785573ee3ab55",
+      "alternativeSignatures": [],
+      "memberOf": [
+        "default"
+      ],
+      "justification": "BA2008 EnableControlFlowGuard suppression for aapt2.exe at bin/Release/dotnet/packs/Microsoft.Android.Sdk.Windows/*/tools/aapt2.exe. Third-party binary from Google Android SDK - EnableControlFlowGuard cannot be enabled as this is provided by Google and does not support control flow guard flags.",
+      "createdDate": "2025-01-22 00:00:00Z"
+    }
+  }
+}

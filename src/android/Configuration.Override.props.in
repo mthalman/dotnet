@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <!--
+      AndroidApiLevel, AndroidFrameworkVersion, and AndroidPlatformId MUST be
+      kept consistent with each other, lest Bad Things Happen™
+      -->
+    <!-- The default Android API level to bind in src/Mono.Android -->
+    <AndroidApiLevel>35</AndroidApiLevel>
+    <!-- The Xamarin.Android $(TargetFrameworkVersion) value that corresponds to $(AndroidApiLevel) -->
+    <AndroidFrameworkVersion>v15.0</AndroidFrameworkVersion>
+    <!-- The default Android API "id" that corresponds to $(AndroidApiLevel) -->
+    <AndroidPlatformId>35</AndroidPlatformId>
+
+    <!--
+      Colon-separated list of ABIs to build the mono JIT for.
+      Supported ABIs include:
+      - armeabi-v7a
+      - arm64-v8a
+      - x86
+      - x86_64
+      Note: Why colon? Because comma `,` and semicolon `;` can't be specified on the command-line.
+      -->
+    <AndroidSupportedTargetJitAbis>armeabi-v7a:arm64-v8a:x86:x86_64</AndroidSupportedTargetJitAbis>
+
+    <!--
+        Colon-separated list of ABIs to build AOT cross-compilers for.
+        There doesn't need to be any parity between the AOT targets and the JIT ABIs above.
+        Supported targets are:
+
+          - armeabi-v7a
+          - win-armeabi-v7a
+          - arm64
+          - win-arm64
+          - x86
+          - win-x86
+          - x86_64
+          - win-x86_64
+    -->
+    <AndroidSupportedTargetAotAbis>armeabi-v7a:win-armeabi-v7a:arm64:win-arm64:x86:win-x86:x86_64:win-x86_64</AndroidSupportedTargetAotAbis>
+
+    <!-- These must be FULL PATHS -->
+    <AndroidToolchainCacheDirectory>$(HOME)\android-archives</AndroidToolchainCacheDirectory>
+    <AndroidToolchainDirectory>$(HOME)\android-toolchain</AndroidToolchainDirectory>
+  </PropertyGroup>
+</Project>

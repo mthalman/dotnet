@@ -1,0 +1,42 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <UsingTask AssemblyFile="$(PrepTasksAssembly)" TaskName="Xamarin.Android.BuildTools.PrepTasks.DownloadUri" />
+  <PropertyGroup>
+    <Aapt2Version>4.0.0-6051327</Aapt2Version>
+    <_Destination>$(MicrosoftAndroidSdkOutDir)</_Destination>
+    <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <_BuildTools Include="build-tools_r$(XABuildToolsVersion)_macosx.zip">
+      <Platform>osx</Platform>
+      <HostOS>Darwin</HostOS>
+      <FilesToExtract>aapt2</FilesToExtract>
+    </_BuildTools>
+    <_BuildTools Include="build-tools_r$(XABuildToolsVersion)_linux.zip">
+      <Platform>linux</Platform>
+      <HostOS>Linux</HostOS>
+      <FilesToExtract>aapt2</FilesToExtract>
+    </_BuildTools>
+    <_BuildTools Include="build-tools_r$(XABuildToolsVersion)_windows.zip">
+      <Platform>windows</Platform>
+      <HostOS></HostOS>
+      <FilesToExtract>aapt2.exe</FilesToExtract>
+    </_BuildTools>
+  </ItemGroup>
+
+  <UsingTask AssemblyFile="$(BootstrapTasksAssembly)" TaskName="Xamarin.Android.Tools.BootstrapTasks.UnzipDirectoryChildren" />
+
+  <Target Name="_ExtractAapt2" BeforeTargets="Build">
+    <UnzipDirectoryChildren
+        NoSubdirectory="False"
+        SourceFiles="$(AndroidToolchainCacheDirectory)\%(_BuildTools.Identity)"
+        DestinationFolder="$(_Destination)%(_BuildTools.HostOS)"
+        FilesToExtract="%(_BuildTools.FilesToExtract)"
+    />
+  </Target>
+
+  <Target Name="_CleanAapt2" BeforeTargets="Clean">
+    <Delete Files="@(_BuildTools->'$(_Destination)\%(HostOS)')" />
+  </Target>
+
+</Project>

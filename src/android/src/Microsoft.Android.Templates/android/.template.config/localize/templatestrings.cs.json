@@ -1,0 +1,7 @@
+﻿{
+  "author": "Microsoft",
+  "name": "Aplikace pro Android",
+  "description": "Projekt pro vytvoření aplikace .NET pro Android",
+  "symbols/packageName/description": "Přepíše název balíčku v souboru AndroidManifest.xml.",
+  "symbols/supportedOSVersion/description": "Přepíše $(SupportedOSPlatformVersion) v projektu."
+}

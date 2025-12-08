@@ -1,0 +1,41 @@
+parameters:
+  xaSourcePath: $(System.DefaultWorkingDirectory)
+  configuration: $(XA.Build.Configuration)
+  artifactName: results
+  includeBuildResults: false
+  condition: or(ne(variables['Agent.JobStatus'], 'Succeeded'), eq(variables['XA.PublishAllLogs'], 'true'))
+  use1ESTemplate: true
+
+steps:
+- template: /build-tools/automation/yaml-templates/run-xaprepare.yaml
+  parameters:
+    configuration: ${{ parameters.configuration }}
+    arguments: --s=CopyExtraResultFilesForCI --verbosity v
+    xaSourcePath: ${{ parameters.xaSourcePath }}
+    displayName: Copy extra result files
+    condition: ${{ parameters.condition }}
+
+- ${{ if eq(parameters.includeBuildResults, false) }}:
+  - template: /build-tools/automation/yaml-templates/publish-artifact.yaml
+    parameters:
+      displayName: upload test results
+      artifactName: ${{ parameters.artifactName }}
+      targetPath: $(Build.StagingDirectory)/Test${{ parameters.configuration }}
+      condition: ${{ parameters.condition }}
+      use1ESTemplate: ${{ parameters.use1ESTemplate }}
+
+# Copy Build$(Configuration) folder into test result root and upload single artifact
+- ${{ if eq(parameters.includeBuildResults, true) }}:
+  - task: CopyFiles@2
+    inputs:
+      sourceFolder: $(Build.StagingDirectory)/Build${{ parameters.configuration }}
+      targetFolder: $(Build.StagingDirectory)/Test${{ parameters.configuration }}/Build${{ parameters.configuration }}
+    condition: ${{ parameters.condition }}
+
+  - template: /build-tools/automation/yaml-templates/publish-artifact.yaml
+    parameters:
+      displayName: upload build and test results
+      artifactName: ${{ parameters.artifactName }}
+      targetPath: $(Build.StagingDirectory)/Test${{ parameters.configuration }}
+      condition: ${{ parameters.condition }}
+      use1ESTemplate: ${{ parameters.use1ESTemplate }}

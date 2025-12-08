@@ -1,0 +1,217 @@
+<!--
+***********************************************************************************************
+Microsoft.Android.Sdk.NativeAOT.targets
+
+This file contains the NativeAOT-specific MSBuild logic for .NET for Android.
+***********************************************************************************************
+-->
+<Project>
+
+  <UsingTask TaskName="Xamarin.Android.Tasks.SetNdkPathForIlc" AssemblyFile="$(_XamarinAndroidBuildTasksAssembly)" />
+  <UsingTask TaskName="Xamarin.Android.Tasks.GenerateNativeAotLibraryLoadAssemblerSources" AssemblyFile="$(_XamarinAndroidBuildTasksAssembly)" />
+  <UsingTask TaskName="Xamarin.Android.Tasks.GenerateNativeAotEnvironmentAssemblerSources" AssemblyFile="$(_XamarinAndroidBuildTasksAssembly)" />
+
+  <!-- Default property values for NativeAOT -->
+  <PropertyGroup>
+    <_AndroidRuntimePackRuntime>NativeAOT</_AndroidRuntimePackRuntime>
+    <_AndroidJcwCodegenTarget Condition=" '$(_AndroidJcwCodegenTarget)' == '' ">JavaInterop1</_AndroidJcwCodegenTarget>
+    <_AndroidTypeMapImplementation Condition=" '$(_AndroidTypeMapImplementation)' == '' ">managed</_AndroidTypeMapImplementation>
+    <!-- .NET SDK gives: error NETSDK1191: A runtime identifier for the property 'PublishAot' couldn't be inferred. Specify a rid explicitly. -->
+    <AllowPublishAotWithoutRuntimeIdentifier Condition=" '$(AllowPublishAotWithoutRuntimeIdentifier)' == '' ">true</AllowPublishAotWithoutRuntimeIdentifier>
+    <!-- NativeAOT's targets currently gives an error about cross-compilation -->
+    <DisableUnsupportedError Condition=" $([MSBuild]::IsOSPlatform('windows')) and '$(DisableUnsupportedError)' == '' ">true</DisableUnsupportedError>
+    <!-- HACK: make dotnet restore include Microsoft.NETCore.App.Runtime.NativeAOT.linux-bionic-arm64 -->
+    <_IsPublishing Condition=" '$(_IsPublishing)' == '' ">true</_IsPublishing>
+  </PropertyGroup>
+
+  <!-- Default property values for NativeAOT Debug configuration -->
+  <PropertyGroup Condition="'$(DebugSymbols)' == 'true'">
+    <NativeDebugSymbols>true</NativeDebugSymbols>
+    <StripSymbols>false</StripSymbols>
+    <CompressSymbols>false</CompressSymbols>
+  </PropertyGroup>
+
+  <!-- Default feature switches -->
+  <ItemGroup>
+    <RuntimeHostConfigurationOption Include="Microsoft.Android.Runtime.RuntimeFeature.IsMonoRuntime"
+        Value="false"
+        Trim="true"
+    />
+    <RuntimeHostConfigurationOption Include="Microsoft.Android.Runtime.RuntimeFeature.IsCoreClrRuntime"
+        Value="false"
+        Trim="true"
+    />
+  </ItemGroup>
+
+  <!-- Make IlcCompile depend on the trimmer -->
+  <PropertyGroup>
+    <IlcCompileDependsOn>
+      _AndroidBeforeIlcCompile;
+      SetupOSSpecificProps;
+      PrepareForILLink;
+      ILLink;
+      ComputeIlcCompileInputs;
+      _AndroidComputeIlcCompileInputs;
+      $(IlcCompileDependsOn)
+    </IlcCompileDependsOn>
+  </PropertyGroup>
+
+  <Target Name="_AndroidBeforeIlcCompile"
+      DependsOnTargets="_PrepareLinking"
+      BeforeTargets="SetupProperties">
+    <!-- Example settings from: https://github.com/jonathanpeppers/Android-NativeAOT/blob/ea69d122cdc7de67aa6a5db14b7e560763c63cdd/DotNet/libdotnet.targets -->
+    <PropertyGroup>
+      <_NdkAbi Condition=" '$(RuntimeIdentifier)' == 'android-arm64' ">aarch64</_NdkAbi>
+      <_NdkAbi Condition=" '$(RuntimeIdentifier)' == 'android-x64' ">x86_64</_NdkAbi>
+      <_NdkSysrootAbi>$(_NdkAbi)-linux-android</_NdkSysrootAbi>
+      <_NdkPrebuiltAbi Condition=" $([MSBuild]::IsOSPlatform('windows')) ">windows-x86_64</_NdkPrebuiltAbi>
+      <_NdkPrebuiltAbi Condition=" $([MSBuild]::IsOSPlatform('osx')) ">darwin-x86_64</_NdkPrebuiltAbi>
+      <_NdkPrebuiltAbi Condition=" $([MSBuild]::IsOSPlatform('linux')) ">linux-x86_64</_NdkPrebuiltAbi>
+      <_NdkSysrootDir>$(_AndroidNdkDirectory)toolchains/llvm/prebuilt/$(_NdkPrebuiltAbi)/sysroot/usr/lib/$(_NdkSysrootAbi)/</_NdkSysrootDir>
+      <_NdkBinDir>$(_AndroidNdkDirectory)toolchains/llvm/prebuilt/$(_NdkPrebuiltAbi)/bin/</_NdkBinDir>
+      <CppCompilerAndLinker>clang++</CppCompilerAndLinker>
+      <ObjCopyName>llvm-objcopy</ObjCopyName>
+
+      <!-- We must ensure this is `false`, as it would interfere with statically linking libc++ -->
+      <LinkStandardCPlusPlusLibrary>false</LinkStandardCPlusPlusLibrary>
+
+      <!-- Example settings from: https://github.com/xamarin/xamarin-macios/blob/c43d4ea40bc777969e3b158cf46446df292d8449/dotnet/targets/Xamarin.Shared.Sdk.targets#L541-L550 -->
+      <RunILLink>true</RunILLink>
+      <!--
+        We want to suppress warnings from trimmer and only show warnings from ILC.
+        Otherwise, you would get 2x for every warning.
+      -->
+      <_OriginalSuppressTrimAnalysisWarnings>$(SuppressTrimAnalysisWarnings)</_OriginalSuppressTrimAnalysisWarnings>
+      <SuppressTrimAnalysisWarnings>true</SuppressTrimAnalysisWarnings>
+      <!-- Ensure ILLink respects the value of SuppressTrimAnalysisWarnings -->
+      <_ExtraTrimmerArgs>$(_ExtraTrimmerArgs) --notrimwarn</_ExtraTrimmerArgs>
+    </PropertyGroup>
+
+    <SetNdkPathForIlc NdkBinDirectory="$(_NdkBinDir)" />
+  </Target>
+
+  <Target Name="_AndroidComputeIlcCompileInputs">
+    <PropertyGroup>
+      <!-- Turn trimmer warnings back to original value -->
+      <SuppressTrimAnalysisWarnings>$(_OriginalSuppressTrimAnalysisWarnings)</SuppressTrimAnalysisWarnings>
+    </PropertyGroup>
+    <ItemGroup>
+      <!-- Android needs a proper soname property or it will refuse to load the library -->
+      <LinkerArg Include="&quot;-Wl,-soname,lib$(TargetName)$(NativeBinaryExt)&quot;" />
+      <LinkerArg Include="-Wl,--error-unresolved-symbols" />
+      <LinkerArg Include="-Wl,--no-undefined" />
+
+      <!-- Required for [UnmanagedCallersOnly] to work inside this assembly -->
+      <UnmanagedEntryPointsAssembly Include="Microsoft.Android.Runtime.NativeAOT" />
+      <!-- Give ILLink's output to ILC -->
+      <IlcCompileInput Remove="@(IlcCompileInput)" />
+      <IlcCompileInput Include="$(IntermediateLinkDir)$(TargetName)$(TargetExt)" />
+      <_AndroidILLinkAssemblies Include="@(ManagedAssemblyToLink->'$(IntermediateLinkDir)%(Filename)%(Extension)')" Condition="Exists('$(IntermediateLinkDir)%(Filename)%(Extension)')" />
+      <IlcReference Remove="@(IlcReference)" />
+      <IlcReference Include="@(PrivateSdkAssemblies)" />
+      <IlcReference Include="@(_AndroidILLinkAssemblies)" />
+      <!-- Root *everything* for ILC, as it's already trimmed -->
+      <TrimmerRootAssembly Include="@(_AndroidILLinkAssemblies->'%(Filename)')" Exclude="System.Private.CoreLib" TrimMode="All" />
+      <!-- Passes linked assemblies to outer MSBuild tasks/targets -->
+      <ResolvedFileToPublish Include="@(IlcCompileInput);@(_AndroidILLinkAssemblies)" RuntimeIdentifier="$(RuntimeIdentifier)" />
+
+      <!-- Satellite assemblies -->
+      <IlcSatelliteAssembly Include="$(_OuterIntermediateSatelliteAssembliesWithTargetPath)" />
+
+      <_NdkLibs Include="@(RuntimePackAsset->WithMetadataValue('Filename', 'libnaot-android.$(Configuration.ToLower())-static-$(Configuration.ToLower())'))" />
+
+      <!-- Include libc++ -->
+      <_NdkLibs Include="$(_NdkSysrootDir)libc++_static.a" />
+      <_NdkLibs Include="$(_NdkSysrootDir)libc++abi.a" />
+      
+      <LinkerArg Include="&quot;%(_NdkLibs.Identity)&quot;" />
+
+      <!-- This library conflicts with static libc++ -->
+      <NativeLibrary Remove="$(IlcSdkPath)libstdc++compat.a" />
+      <LinkerArg Remove="$(IlcSdkPath)libstdc++compat.a" />
+
+      <!-- Every p/invoke using the `xa-internal-api` "library" will be called directly -->
+      <DirectPInvoke Include="xa-internal-api" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="_PrepareNativeAotAndroidAppInputs">
+    <ItemGroup>
+      <_PrivateBuildTargetAbi Condition=" '$(RuntimeIdentifier)' == 'android-arm64' " Include="arm64-v8a" />
+      <_PrivateBuildTargetAbi Condition=" '$(RuntimeIdentifier)' == 'android-x64' " Include="x86_64" />
+    </ItemGroup>
+
+    <PrepareAbiItems
+        BuildTargetAbis="@(_PrivateBuildTargetAbi)"
+        NativeSourcesDir="$(_NativeAssemblySourceDir)"
+        Debug="$(AndroidIncludeDebugSymbols)"
+        Mode="jni_init">
+      <Output TaskParameter="AssemblySources" ItemName="_PrivateJniInitFuncsAssemblySource" />
+    </PrepareAbiItems>
+
+    <PrepareAbiItems
+        BuildTargetAbis="@(_PrivateBuildTargetAbi)"
+        NativeSourcesDir="$(_NativeAssemblySourceDir)"
+        Debug="$(AndroidIncludeDebugSymbols)"
+        Mode="environment">
+      <Output TaskParameter="AssemblySources" ItemName="_PrivateEnvironmentAssemblySource" />
+    </PrepareAbiItems>
+
+    <ItemGroup>
+      <_PrivateJniInitFuncsNativeObjectFile Include="@(_PrivateJniInitFuncsAssemblySource->'$([System.IO.Path]::ChangeExtension('%(Identity)', '.o'))')">
+        <abi>%(_PrivateJniInitFuncsAssemblySource.abi)</abi>
+      </_PrivateJniInitFuncsNativeObjectFile>
+
+      <_PrivateEnvironmentNativeObjectFile Include="@(_PrivateEnvironmentAssemblySource->'$([System.IO.Path]::ChangeExtension('%(Identity)', '.o'))')">
+        <abi>%(_PrivateEnvironmentAssemblySource.abi)</abi>
+      </_PrivateEnvironmentNativeObjectFile>
+
+      <_PrivateAndroidNaotResolvedAssemblyFiles Include="@(ResolvedFileToPublish->Distinct())" Condition=" '%(ResolvedFileToPublish.Extension)' == '.dll' " />
+    </ItemGroup>
+  </Target>
+
+  <Target
+      Name="_GenerateNativeAotAndroidAppAssemblerSources"
+      DependsOnTargets="_GenerateEnvironmentFiles;_PrepareNativeAotAndroidAppInputs"
+      Inputs="@(_PrivateAndroidNaotResolvedAssemblyFiles);@(AndroidEnvironment);@(LibraryEnvironments)"
+      Outputs="@(_PrivateJniInitFuncsAssemblySource);@(_PrivateJniInitFuncsNativeObjectFile);@(_PrivateEnvironmentAssemblySource);@(_PrivateEnvironmentNativeObjectFile)">
+    <GenerateNativeAotLibraryLoadAssemblerSources
+        ResolvedAssemblies="@(_PrivateAndroidNaotResolvedAssemblyFiles)"
+        CustomJniInitFunctions="@(AndroidStaticJniInitFunction)"
+        OutputSources="@(_PrivateJniInitFuncsAssemblySource)" />
+
+    <GenerateNativeAotEnvironmentAssemblerSources
+        Debug="$(AndroidIncludeDebugSymbols)"
+        Environments="@(AndroidEnvironment);@(LibraryEnvironments)"
+        HttpClientHandlerType="$(AndroidHttpClientHandlerType)"
+        OutputSources="@(_PrivateEnvironmentAssemblySource)"
+        RID="$(RuntimeIdentifier)" />
+
+    <CompileNativeAssembly
+        Sources="@(_PrivateJniInitFuncsAssemblySource);@(_PrivateEnvironmentAssemblySource)"
+        DebugBuild="$(AndroidIncludeDebugSymbols)"
+        WorkingDirectory="$(_NativeAssemblySourceDir)"
+        AndroidBinUtilsDirectory="$(AndroidBinUtilsDirectory)" />
+
+    <ItemGroup>
+      <LinkerArg Include="@(_PrivateJniInitFuncsNativeObjectFile)" />
+      <LinkerArg Include="@(_PrivateEnvironmentNativeObjectFile)" />
+    </ItemGroup>
+  </Target>
+
+  <!-- Make sure we have a chance to generate our application-specific static library before linking
+       takes place. We must run after `IlcCompile`, which is a dependency of `LinkNative`  -->
+  <Target
+      Name="_GenerateNativeAotAndroidAppLibrary"
+      AfterTargets="IlcCompile"
+      DependsOnTargets="_GenerateNativeAotAndroidAppAssemblerSources">
+  </Target>
+
+  <Target Name="_AndroidFixNativeLibraryFileName" AfterTargets="ComputeFilesToPublish">
+    <ItemGroup>
+      <!-- Fix paths to contain lib-prefix -->
+      <ResolvedFileToPublish Update="@(ResolvedFileToPublish)" ArchiveFileName="lib%(FileName)%(Extension)" Condition=" '%(Filename)%(Extension)' == '$(TargetName)$(NativeBinaryExt)' " />
+    </ItemGroup>
+  </Target>
+
+</Project>

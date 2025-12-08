@@ -1,0 +1,3 @@
+[submodule "src/source-build-reference-packages/src/externalPackages/src/android"]
+	path = src/source-build-reference-packages/src/externalPackages/src/android
+	url = https://github.com/dotnet/android

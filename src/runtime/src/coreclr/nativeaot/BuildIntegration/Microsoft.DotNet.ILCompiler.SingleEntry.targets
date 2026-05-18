@@ -6,6 +6,18 @@
 
     <_targetsNonPortableSdkRid>false</_targetsNonPortableSdkRid>
     <_targetsNonPortableSdkRid Condition="'$(RuntimeIdentifier)' == '$(NETCoreSdkRuntimeIdentifier)' and '$(RuntimeIdentifier)' != '$(NETCoreSdkPortableRuntimeIdentifier)'">true</_targetsNonPortableSdkRid>
+    <!--
+      Source-build only produces NativeAOT compiler/runtime packs under the non-portable
+      target RID (e.g. runtime.centos.10-x64.Microsoft.DotNet.ILCompiler,
+      Microsoft.NETCore.App.Runtime.NativeAOT.centos.10-x64). In source-build legs that
+      use a portable Microsoft SDK (bootstrap scenario), the condition above is not true
+      because NETCoreSdkRuntimeIdentifier is the portable RID, so pack-name resolution
+      would default to the portable form which source-build does not produce. Treat that
+      case the same as a non-portable SDK so the project's non-portable RuntimeIdentifier
+      is used verbatim for both the host/target ILCompiler tool packs and the NativeAOT
+      runtime pack.
+    -->
+    <_targetsNonPortableSdkRid Condition="'$(DotNetBuildSourceOnly)' == 'true' and '$(RuntimeIdentifier)' == '$(TargetRuntimeIdentifier)' and '$(RuntimeIdentifier)' != '$(NETCoreSdkPortableRuntimeIdentifier)'">true</_targetsNonPortableSdkRid>
 
     <_originalTargetOS>$(RuntimeIdentifier.SubString(0, $(RuntimeIdentifier.LastIndexOf('-'))))</_originalTargetOS>
     <_originalTargetOS Condition="'$(_targetsNonPortableSdkRid)' == 'true'">$(NETCoreSdkPortableRuntimeIdentifier.SubString(0, $(NETCoreSdkPortableRuntimeIdentifier.LastIndexOf('-'))))</_originalTargetOS>
